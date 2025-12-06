@@ -111,6 +111,7 @@
 - **遺漏**：無規範文件詳述 relevance 與 date 排序的具體實現方式
 
 **實際影響**：
+
 - `relevance`：YouTube 預設順序（無需額外排序邏輯）
 - `date`：按 `publish_date` 欄位排序（需實現比較邏輯）
 
@@ -127,6 +128,7 @@
 - **遺漏**：Redis 連線失敗或超時時，系統應如何降級？
 
 **可能情景**：
+
 1. 拋出異常 → API 返回 HTTP 503
 2. 跳過快取繼續爬蟲 → 返回新鮮結果（慢）
 3. 返回暫存結果 → 可能無法取得
@@ -144,6 +146,7 @@
 - **遺漏**：精度是否為秒 (Z) 或毫秒 (.000Z)？
 
 **範例**：
+
 - 秒級：`2025-12-07T12:00:00Z`
 - 毫秒級：`2025-12-07T12:00:00.000Z`
 
@@ -277,6 +280,7 @@ tasks.md: T016 (API 回應結構整合)
 1. **補充 sort_by 實現詳情** [MEDIUM]
    - **檔案**：plan.md Phase 1 設計與合約 → 2. API 合約（OpenAPI）
    - **內容**：補充排序邏輯
+
      ```markdown
      - sort_by=relevance：保持 YouTube 預設順序（無額外排序）
      - sort_by=date：按 publish_date 升序排序；若 publish_date 缺失則置尾
@@ -285,6 +289,7 @@ tasks.md: T016 (API 回應結構整合)
 2. **定義 Redis 降級策略** [MEDIUM]
    - **檔案**：spec.md 假設與限制
    - **內容**：補充一行
+
      ```markdown
      - Redis 連線失敗時：拋出例外，API 返回 HTTP 503 與 error_code=CACHE_UNAVAILABLE
      ```
@@ -292,6 +297,7 @@ tasks.md: T016 (API 回應結構整合)
 3. **timestamp 格式精化** [LOW]
    - **檔案**：data-model.md SearchResult
    - **內容**：補充範例
+
      ```markdown
      timestamp: "2025-12-07T12:00:00Z"  # ISO 8601 UTC，秒級精度
      ```
