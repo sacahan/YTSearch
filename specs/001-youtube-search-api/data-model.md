@@ -108,7 +108,15 @@ class Video(BaseModel):
 | `search_keyword` | string | ✅ | 搜尋關鍵字 | `Python 教學` |
 | `result_count` | integer | ✅ | 返回影片數量 | `5` |
 | `videos` | list[Video] | ✅ | 影片清單 | `[...]` |
-| `timestamp` | string | ✅ | 搜尋時間戳記（ISO 8601） | `2025-12-07T12:00:00Z` |
+| `timestamp` | string | ✅ | 搜尋時間戳記（ISO 8601 UTC，秒級精度） | `2025-12-07T12:00:00Z` |
+
+**timestamp 格式說明**：
+
+- 格式：RFC 3339 (ISO 8601)
+- 時區：UTC（Z 後綴）
+- 精度：秒級（YYYY-MM-DDTHH:MM:SSZ）
+- 毫秒級不使用（為保持 API 簡潔）
+- 範例：`2025-12-07T12:00:00Z`（標準秒級格式）
 
 **數據驗證**：
 

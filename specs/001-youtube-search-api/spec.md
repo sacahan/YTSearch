@@ -120,6 +120,7 @@ API 支援根據相關性、發佈日期或觀看數對結果進行排序，允�
 - YouTube 連線故障（逾時、無法連接）時立即返回 HTTP 503 Service Unavailable，不自動重試，由客戶端決定是否稍後重新請求
 - 快取實現：同一關鍵字搜尋結果在 Redis 中快取 1 小時（TTL 3600 秒）。超過 TTL 後自動重新爬蟲。快取鍵格式為 `youtube_search:{keyword_hash}`
 - Redis 連線參數由環境變數提供：`REDIS_HOST`（預設 localhost）、`REDIS_PORT`（預設 6379）、`REDIS_DB`（預設 0）
+- Redis 連線失敗時：系統拋出例外，API 返回 HTTP 503 Service Unavailable，error_code=CACHE_UNAVAILABLE，error 訊息說明快取服務不可用
 - Metadata 提取策略：`video_id` 為必須欄位，無法提取則該筆影片整個不返回；其他欄位（title、channel、publish_date、view_count 等）採用最佳努力提取，無法取得時設為 null，不影響整筆影片返回
 - API 回應格式遵循 RESTful 標準：成功回應（HTTP 200）直接返回 SearchResult 對象；失敗回應返回對應 HTTP 狀態碼及錯誤 JSON 對象 `{ error: "string", error_code: "string" }`。常見錯誤狀態碼包括 400（參數驗證失敗）、503（YouTube 連線故障）等
 

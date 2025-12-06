@@ -178,6 +178,11 @@ GET /api/v1/search?keyword=Python教學&limit=5&sort_by=relevance
 | limit | integer | 1 | 1-100 | 返回結果數量 |
 | sort_by | string | relevance | relevance, date | 排序方式 |
 
+**排序邏輯**：
+
+- `sort_by=relevance`：保持 YouTube 預設順序（無額外排序邏輯）
+- `sort_by=date`：按 `publish_date` 欄位升序排序；若 `publish_date` 缺失則該筆影片置尾
+
 **成功回應（HTTP 200）**：
 
 ```json
