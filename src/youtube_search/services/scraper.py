@@ -163,7 +163,6 @@ class YouTubeScraper:
         if not text:
             return None
         # Parse view count from text like "1.2M views" or "1,234 views"
-        import re
 
         match = re.search(r"([\d,\.]+)\s*([KMB])?\s*view", text, re.I)
         if not match:
