@@ -107,7 +107,78 @@ API 支援根據相關性、發佈日期或觀看數對結果進行排序，允�
 
 ## 假設與限制
 
-- 使用直接爬蟲 YouTube 搜尋頁面（而非官方 API）實現，因此可能受 HTML 結構變化影響
+- 使用直接爬蟲 YouTube 搜尋頁面（而非官方 API）實現以避免 API 成本，因此可能受 HTML 結構變化影響
+- YouTube 搜尋 URL (`https://www.youtube.com/results?search_query={keyword}`) 返回 HTML 內容，需進一步解析以提取影片資訊
+- 爬蟲需識別 HTML 中的 `var ytInitialData = {...}` JSON 結構，提取邏輯必須針對目前的 YouTube 頁面結構
 - 不使用官方 YouTube Data API，避免 API 配額限制但需承擔頁面結構變化風險
 - POC 階段優先考慮功能可用性，而非大規模併發支援
 - 搜尋結果排序基於 YouTube 頁面的預設順序（相關性）
+
+## POC 驗證
+
+### 目標
+
+驗證使用 YouTube 搜尋 URL 直接爬蟲的可行性，確認能否正確提取影片 metadata。
+
+### 驗證方式
+
+- **測試關鍵字**：「張學友 吻別」
+- **測試方法**：
+  1. 發送 HTTP GET 請求至 `https://www.youtube.com/results?search_query=張學友 吻別`
+  2. 從返回的 HTML 中提取 `var ytInitialData = {...}` JSON 字串
+  3. 解析 JSON 提取影片列表中的 video_id、title、channel 等欄位
+  4. 驗證提取結果與 YouTube 頁面顯示內容相符
+
+### 驗證結果 ✅ 成功
+
+**環境**：macOS，Python 3，使用 urllib + json + regex
+
+**結果摘要**：
+
+- ✅ 成功取得 YouTube 搜尋結果頁面（HTML，大小 ~1.2MB）
+- ✅ 成功提取 `var ytInitialData` JSON 結構（大小 ~550KB）
+- ✅ 成功解析 JSON 並提取 22 個影片記錄
+- ✅ 正確提取所有必要 metadata：video_id、title、channel
+
+**實際提取樣本**（前 3 筆）：
+
+| # | video_id | title | channel |
+|---|----------|-------|---------|
+| 1 | mIF-nn_y2_8 | 張學友 Jacky Cheung - 吻別 | 音樂無疆界 Music Without Boundaries |
+| 2 | k6zmy0yvXB4 | 張學友   吻別 無損音樂FLAC 歌詞LYRICS 純享 | MusicDelta |
+| 3 | ZRCr3sqePzg | 1993 張學友《吻別》MV 香港完整版 ft. 周海媚 | 張哲生 |
+
+### 驗證標準
+
+✅ **可行**：成功提取正確的 video_id 與基本 metadata（title、channel）
+
+### 技術實現細節確認
+
+- **HTTP 請求**：使用標準 urllib，需設定 User-Agent 表頭避免被擋
+- **HTML 解析**：使用正則表達式提取 `var ytInitialData = (...);` JSON 字串
+- **JSON 解析**：標準 json 庫解析結構
+
+**JSON 結構路徑**：
+
+```
+data['contents']['twoColumnSearchResultsRenderer']['primaryContents']
+    ['sectionListRenderer']['contents'][...]['itemSectionRenderer']
+    ['contents'][...]['videoRenderer']
+```
+
+**Metadata 提取路徑**：
+
+- `video_id`：直接字段
+- `title`：`title.runs[0].text`
+- `channel`：`longBylineText.runs[0].text`
+
+### 後續行動
+
+✅ **驗證成功** → 進入 `/speckit.plan` 階段進行技術設計
+
+**建議工具組**：
+
+- `requests`：HTTP 請求
+- `re`：正則表達式提取
+- `json`：JSON 解析
+- （可選）`BeautifulSoup`：HTML 更結構化解析
