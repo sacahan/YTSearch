@@ -34,20 +34,38 @@ venv\Scripts\activate  # Windows
 
 ### 3. 安裝依賴
 
+使用 `uv` 安裝專案依賴（推薦）：
+
 ```bash
-pip install -r requirements.txt
-# 或使用 uv
 uv sync
 ```
 
-**dependencies** (待建立 `requirements.txt`)：
+或使用傳統 pip：
+
+```bash
+pip install -e ".[dev]"
+```
+
+**依賴列表**（自 `pyproject.toml`）：
+
+**核心依賴**：
 
 - fastapi >= 0.104.0
 - pydantic >= 2.0.0
+- pydantic-settings >= 2.0.0
 - requests >= 2.31.0
 - redis >= 5.0.0
 - python-dotenv >= 1.0.0
-- pytest >= 7.4.0 (可選)
+- uvicorn >= 0.24.0
+
+**開發依賴** (可選，`uv sync --all-extras`)：
+
+- pytest >= 7.4.0
+- pytest-asyncio >= 0.21.0
+- pytest-cov >= 4.1.0
+- ruff >= 0.1.0
+- mypy >= 1.7.0
+- black >= 23.12.0
 
 ## 環境配置
 
@@ -281,7 +299,7 @@ docker run -p 8000:8000 \
 
 ### Redis 連線失敗
 
-```
+```python
 ConnectionRefusedError: [Errno 111] Connection refused
 ```
 
