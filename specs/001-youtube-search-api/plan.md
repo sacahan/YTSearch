@@ -73,28 +73,27 @@ specs/001-youtube-search-api/
 
 ```text
 src/
-├── youtube_search/
+├── __init__.py
+├── models/                  # Pydantic 數據模型
 │   ├── __init__.py
-│   ├── models/              # Pydantic 數據模型
-│   │   ├── __init__.py
-│   │   ├── video.py         # Video 實體
-│   │   └── search.py        # SearchResult 實體
-│   ├── services/            # 業務邏輯層
-│   │   ├── __init__.py
-│   │   ├── scraper.py       # YouTube 爬蟲邏輯
-│   │   ├── cache.py         # Redis 快取管理
-│   │   └── search.py        # 搜尋協調服務
-│   ├── api/                 # API 端點層
-│   │   ├── __init__.py
-│   │   └── v1/
-│   │       ├── __init__.py
-│   │       └── search.py    # GET /api/v1/search 端點
-│   ├── utils/
-│   │   ├── __init__.py
-│   │   ├── validators.py    # 輸入驗證
-│   │   ├── errors.py        # 自訂例外
-│   │   └── logger.py        # 結構化日誌
-│   └── config.py            # 環境配置
+│   ├── video.py             # Video 實體
+│   └── search.py            # SearchResult 實體
+├── services/                # 業務邏輯層
+│   ├── __init__.py
+│   ├── scraper.py           # YouTube 爬蟲邏輯
+│   ├── cache.py             # Redis 快取管理
+│   └── search.py            # 搜尋協調服務
+├── api/                     # API 端點層
+│   ├── __init__.py
+│   └── v1/
+│       ├── __init__.py
+│       └── search.py        # GET /api/v1/search 端點
+├── utils/                   # 工具函式庫
+│   ├── __init__.py
+│   ├── validators.py        # 輸入驗證
+│   ├── errors.py            # 自訂例外
+│   └── logger.py            # 結構化日誌
+└── config.py                # 環境配置
 
 tests/
 ├── unit/                    # 單元測試
@@ -106,11 +105,12 @@ tests/
 └── conftest.py
 
 main.py                       # FastAPI 應用入口
-requirements.txt / pyproject.toml
+pyproject.toml               # 專案配置 + 套件管理（uv）
 Dockerfile                   # （選擇性部署）
+.env.example                 # 環境變數範本
 ```
 
-**結構決策**：選擇 Option 1（單一專案）。YouTube 爬蟲及 API 服務共置於 src/youtube_search 中，按層次分割（models → services → api）以保持清潔架構。
+**結構決策**：簡化為 `src/` 直接模組結構（無冗余嵌套）。按層次分割（models → services → api）以保持清潔架構，模組可透過 `from src.models import Video` 直接匯入。
 
 ## Phase 0：輪廓與研究
 
