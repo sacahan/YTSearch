@@ -15,8 +15,10 @@ dist/
 .installed.cfg
 *.egg
 
-# Virtual environments
+# Virtual environments / env files
 .env
+.env.*
+.env.local
 .venv
 env/
 venv/
