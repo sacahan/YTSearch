@@ -201,7 +201,8 @@ components:
         timestamp:
           type: string
           format: date-time
-          description: 搜尋時間戳記（ISO 8601 格式，UTC）
+          description: 搜尋時間戳記（ISO 8601 格式，UTC，秒級精度）
+          pattern: '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$'
           example: "2025-12-07T12:00:00Z"
 
     ErrorResponse:
@@ -223,6 +224,7 @@ components:
             - INVALID_KEYWORD_LENGTH
             - INVALID_LIMIT
             - YOUTUBE_UNAVAILABLE
+            - CACHE_UNAVAILABLE
             - INTERNAL_ERROR
           example: "YOUTUBE_UNAVAILABLE"
 

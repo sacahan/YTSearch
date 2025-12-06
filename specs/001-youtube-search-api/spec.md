@@ -19,9 +19,10 @@
 
 **接受情景**：
 
-1. **當** 客戶端呼叫 `GET /api/search?keyword=Python教學` **則** 系統返回 HTTP 200 且包含影片清單
+1. **當** 客戶端呼叫 `GET /api/v1/search?keyword=Python教學` **則** 系統返回 HTTP 200 且包含影片清單
 2. **當** 清單中至少有一筆記錄 **則** 該記錄需包含 `video_id`、`title`、`url` 等基本 metadata
 3. **當** 搜尋無結果 **則** 系統返回空清單，而非錯誤
+4. **當** YouTube 連線失敗 **則** 系統返回 HTTP 503 Service Unavailable
 
 ---
 
@@ -31,7 +32,7 @@ API 從搜尋結果中提取並整理各影片的 metadata，包括 video_id、�
 
 **為何此優先級**：提取 metadata 是核心價值主張。無法有效提取 metadata 就無法滿足「供後續系統使用」的需求。
 
-**獨立測試**：搜尋後檢查回應中的每筆影片記錄都包含預期的 metadata 欄位（video_id、title、channel、publish_date 等），且資料格式一致。
+**獨立測試**：搜尋後檢查回應中的每筆影片記錄都包含預期的 metadata 欄位（video_id、title、channel、publish_date 等），且資料格式一致。可選欄位（title、channel、publish_date、view_count、description）提取成功率應 ≥ 50%。
 
 **接受情景**：
 
@@ -73,12 +74,12 @@ API 支援根據相關性、發佈日期或觀看數對結果進行排序，允�
 - **FR-002**：系統必須從搜尋結果中正確提取 `video_id`
 - **FR-003**：系統必須提供 RESTful API 端點接受關鍵字參數並返回 JSON 格式結果
 - **FR-004**：系統必須為每筆影片至少提取 `video_id`、`title`、`channel`、`url` 等 metadata
-- **FR-005**：系統必須驗證輸入關鍵字非空且長度合理（建議 1-200 字元）
+- **FR-005**：系統必須驗證輸入關鍵字非空且長度為 1-200 字元。關鍵字在驗證前執行 trim（去除首尾空白），trim 後若為空則返回 HTTP 400 Bad Request
 - **FR-006**：系統必須記錄所有搜尋請求與錯誤到結構化日誌中
 - **FR-007**：系統必須遵守 YouTube 服務條款，不下載或儲存媒體內容，僅提取 metadata
 - **FR-008**：系統必須實現搜尋結果快取機制，同一關鍵字的搜尋結果 TTL 為 1 小時。快取後端使用 Redis，連線參數透過環境變數配置（`REDIS_HOST`、`REDIS_PORT`、`REDIS_DB`）
 - **FR-009**：系統必須支援 `limit` 查詢參數指定返回結果數量，預設值為 1，允許值為 1-100，超過上限則返回 HTTP 400 Bad Request
-- **FR-010**：系統必須採用 RESTful API 回應格式標準。成功回應（HTTP 200）返回搜尋結果 data；失敗回應返回對應 HTTP 狀態碼（400、503 等）+ JSON 錯誤對象 `{ error: string, error_code: string }`
+- **FR-010**：系統必須採用 RESTful API 回應格式標準。成功回應（HTTP 200）返回搜尋結果 data；失敗回應返回對應 HTTP 狀態碼（400、503 等）+ JSON 錯誤對象 `{ error: string, error_code: string }`。錯誤碼包含：`MISSING_PARAMETER`、`INVALID_KEYWORD_LENGTH`、`INVALID_LIMIT`、`YOUTUBE_UNAVAILABLE`、`CACHE_UNAVAILABLE`、`INTERNAL_ERROR`
 
 ### 主要實體
 
@@ -120,7 +121,7 @@ API 支援根據相關性、發佈日期或觀看數對結果進行排序，允�
 - YouTube 連線故障（逾時、無法連接）時立即返回 HTTP 503 Service Unavailable，不自動重試，由客戶端決定是否稍後重新請求
 - 快取實現：同一關鍵字搜尋結果在 Redis 中快取 1 小時（TTL 3600 秒）。超過 TTL 後自動重新爬蟲。快取鍵格式為 `youtube_search:{keyword_hash}`
 - Redis 連線參數由環境變數提供：`REDIS_HOST`（預設 localhost）、`REDIS_PORT`（預設 6379）、`REDIS_DB`（預設 0）
-- Redis 連線失敗時：系統拋出例外，API 返回 HTTP 503 Service Unavailable，error_code=CACHE_UNAVAILABLE，error 訊息說明快取服務不可用
+- Redis 連線失敗時：系統拋出例外，API 返回 HTTP 503 Service Unavailable，error_code=CACHE_UNAVAILABLE，error 訊息說明快取服務不可用。系統不回退到無快取模式，要求 Redis 必須可用才能提供服務
 - Metadata 提取策略：`video_id` 為必須欄位，無法提取則該筆影片整個不返回；其他欄位（title、channel、publish_date、view_count 等）採用最佳努力提取，無法取得時設為 null，不影響整筆影片返回
 - API 回應格式遵循 RESTful 標準：成功回應（HTTP 200）直接返回 SearchResult 對象；失敗回應返回對應 HTTP 狀態碼及錯誤 JSON 對象 `{ error: "string", error_code: "string" }`。常見錯誤狀態碼包括 400（參數驗證失敗）、503（YouTube 連線故障）等
 

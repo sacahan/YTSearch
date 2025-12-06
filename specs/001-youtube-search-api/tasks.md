@@ -39,10 +39,10 @@
 
 ### 實作任務
 
-- [ ] **T001** 初始化 Python 套件結構 (`src/__init__.py` 及子模組) - `src/__init__.py`, `src/models/__init__.py`, `src/services/__init__.py`, `src/api/__init__.py`, `src/utils/__init__.py`
-- [ ] **T002** 建立環境配置檔案 `.env.example` 與 `src/config.py` - `src/config.py`, `.env.example`
-- [ ] **T003** 建立日誌模組 `src/utils/logger.py` - `src/utils/logger.py`
-- [ ] **T004** 建立自訂例外模組 `src/utils/errors.py` - `src/utils/errors.py`
+- [X] **T001** 初始化 Python 套件結構 (`src/__init__.py` 及子模組) - `src/__init__.py`, `src/models/__init__.py`, `src/services/__init__.py`, `src/api/__init__.py`, `src/utils/__init__.py`
+- [X] **T002** 建立環境配置檔案 `.env.example` 與 `src/config.py` - `src/config.py`, `.env.example`
+- [X] **T003** 建立日誌模組 `src/utils/logger.py` - `src/utils/logger.py`
+- [X] **T004** 建立自訂例外模組 `src/utils/errors.py` - `src/utils/errors.py`
 
 ---
 
@@ -61,13 +61,13 @@
 
 ### 實作任務
 
-- [ ] **T005** [P] 建立 Pydantic 基礎模型 `src/models/video.py` 和 `src/models/search.py` - `src/models/video.py`, `src/models/search.py`
-- [ ] **T006** [P] 建立 YouTube 爬蟲服務 `src/services/scraper.py` (HTML 解析、正則提取 video_id) - `src/services/scraper.py`
-- [ ] **T007** [P] 建立輸入驗證模組 `src/utils/validators.py` (keyword 驗證) - `src/utils/validators.py`
-- [ ] **T008** [P] [US1] 建立搜尋協調服務 `src/services/search.py` (爬蟲 + 模型整合) - `src/services/search.py`
-- [ ] **T009** [US1] 建立 FastAPI 應用入口 `main.py` 與 API v1 基礎 - `main.py`, `src/api/v1/__init__.py`, `src/api/v1/search.py`
-- [ ] **T010** [US1] 實現 GET `/api/v1/search` 端點 (keyword 參數、基礎錯誤處理) - `src/api/v1/search.py`
-- [ ] **T011** [US1] 編寫 Phase 1 煙霧測試 `tests/test_api_basic.py` (搜尋功能基本驗證) - `tests/test_api_basic.py`
+- [X] **T005** [P] 建立 Pydantic 基礎模型 `src/models/video.py` 和 `src/models/search.py` - `src/models/video.py`, `src/models/search.py`
+- [X] **T006** [P] 建立 YouTube 爬蟲服務 `src/services/scraper.py` (HTML 解析、正則提取 video_id) - `src/services/scraper.py`
+- [X] **T007** [P] 建立輸入驗證模組 `src/utils/validators.py` (keyword 驗證) - `src/utils/validators.py`
+- [X] **T008** [P] [US1] 建立搜尋協調服務 `src/services/search.py` (爬蟲 + 模型整合) - `src/services/search.py`
+- [X] **T009** [US1] 建立 FastAPI 應用入口 `main.py` 與 API v1 基礎 - `main.py`, `src/api/v1/__init__.py`, `src/api/v1/search.py`
+- [X] **T010** [US1] 實現 GET `/api/v1/search` 端點 (keyword 參數、基礎錯誤處理) - `src/api/v1/search.py`
+- [X] **T011** [US1] 編寫 Phase 1 煙霧測試 `tests/test_api_basic.py` (搜尋功能基本驗證) - `tests/test_api_basic.py`
 
 ---
 
@@ -86,14 +86,14 @@ API 從搜尋結果中提取並整理各影片的 metadata，包括 video_id、�
 
 ### 實作任務
 
-- [ ] **T012** [P] [US2] 增強爬蟲提取邏輯 (title、channel、url、publish_date、view_count、description) - `src/services/scraper.py`
-- [ ] **T013** [P] [US2] 完善 Pydantic 模型驗證規則 (欄位型別、可選性、邊界) - `src/models/video.py`, `src/models/search.py`
-- [ ] **T014** [P] [US2] 建立 metadata 正規化服務 `src/services/normalizer.py` (null 容錯、格式一致化) - `src/services/normalizer.py`
-- [ ] **T015** [US2] 整合 metadata 提取至搜尋服務 - `src/services/search.py`
-- [ ] **T016** [US2] 增強 API 回應結構 (SearchResult、timestamp、result_count) - `src/api/v1/search.py`
-- [ ] **T017** [US2] 編寫 metadata 提取單元測試 `tests/unit/test_metadata_extraction.py` - `tests/unit/test_metadata_extraction.py`
-- [ ] **T018** [US2] 編寫 API metadata 整合測試 `tests/integration/test_api_metadata.py` - `tests/integration/test_api_metadata.py`
-- [ ] **T019** [US2] 編寫 Pydantic 模型驗證測試 `tests/unit/test_models.py` - `tests/unit/test_models.py`
+- [X] **T012** [P] [US2] 增強爬蟲提取邏輯 (title、channel、url、publish_date、view_count、description) - `src/services/scraper.py`
+- [X] **T013** [P] [US2] 完善 Pydantic 模型驗證規則 (欄位型別、可選性、邊界) - `src/models/video.py`, `src/models/search.py`
+- [X] **T014** [P] [US2] 建立 metadata 正規化服務 `src/services/normalizer.py` (null 容錯、格式一致化) - `src/services/normalizer.py`
+- [X] **T015** [US2] 整合 metadata 提取至搜尋服務 - `src/services/search.py`
+- [X] **T016** [US2] 增強 API 回應結構 (SearchResult、timestamp、result_count) - `src/api/v1/search.py`
+- [X] **T017** [US2] 編寫 metadata 提取單元測試 `tests/unit/test_metadata_extraction.py` - `tests/unit/test_metadata_extraction.py`
+- [X] **T018** [US2] 編寫 API metadata 整合測試 `tests/integration/test_api_metadata.py` - `tests/integration/test_api_metadata.py`
+- [X] **T019** [US2] 編寫 Pydantic 模型驗證測試 `tests/unit/test_models.py` - `tests/unit/test_models.py`
 
 ---
 
@@ -113,12 +113,12 @@ API 支援根據相關性、發佈日期或觀看數對結果進行排序，允�
 
 ### 實作任務
 
-- [ ] **T020** [P] [US3] 實現結果排序邏輯 `src/services/sorter.py` (relevance、date) - `src/services/sorter.py`
-- [ ] **T021** [P] [US3] 增強驗證模組支援 limit 與 sort_by 參數 - `src/utils/validators.py`
-- [ ] **T022** [US3] 更新搜尋服務整合排序邏輯 - `src/services/search.py`
-- [ ] **T023** [US3] 更新 API 端點實現 limit 與 sort_by 參數 - `src/api/v1/search.py`
-- [ ] **T024** [US3] 編寫排序與過濾單元測試 `tests/unit/test_sorting.py` - `tests/unit/test_sorting.py`
-- [ ] **T025** [US3] 編寫 limit 邊界情況測試 `tests/unit/test_parameters.py` - `tests/unit/test_parameters.py`
+- [X] **T020** [P] [US3] 實現結果排序邏輯 `src/services/sorter.py` (relevance、date) - `src/services/sorter.py`
+- [X] **T021** [P] [US3] 增強驗證模組支援 limit 與 sort_by 參數 - `src/utils/validators.py`
+- [X] **T022** [US3] 更新搜尋服務整合排序邏輯 - `src/services/search.py`
+- [X] **T023** [US3] 更新 API 端點實現 limit 與 sort_by 參數 - `src/api/v1/search.py`
+- [X] **T024** [US3] 編寫排序與過濾單元測試 `tests/unit/test_sorting.py` - `tests/unit/test_sorting.py`
+- [X] **T025** [US3] 編寫 limit 邊界情況測試 `tests/unit/test_parameters.py` - `tests/unit/test_parameters.py`
 
 ---
 
@@ -137,10 +137,10 @@ API 支援根據相關性、發佈日期或觀看數對結果進行排序，允�
 
 ### 實作任務
 
-- [ ] **T026** [P] 實現 Redis 快取層 `src/services/cache.py` (TTL、SHA256 鍵生成、失敗降級) - `src/services/cache.py`
-- [ ] **T027** [P] 整合快取至搜尋服務與 API 層 - `src/services/search.py`, `src/api/v1/search.py`
-- [ ] **T028** [P] 編寫快取整合測試 `tests/integration/test_cache.py` - `tests/integration/test_cache.py`
-- [ ] **T029** 建立 Dockerfile 與 docker-compose.yml 配置 - `Dockerfile`, `docker-compose.yml`
+- [X] **T026** [P] 實現 Redis 快取層 `src/services/cache.py` (TTL、SHA256 鍵生成、失敗時拋出例外不降級) - `src/services/cache.py`
+- [X] **T027** [P] 整合快取至搜尋服務與 API 層 - `src/services/search.py`, `src/api/v1/search.py`
+- [X] **T028** [P] 編寫快取整合測試 `tests/integration/test_cache.py` - `tests/integration/test_cache.py`
+- [X] **T029** 建立 Dockerfile 與 docker-compose.yml 配置 - `Dockerfile`, `docker-compose.yml`
 
 ---
 
