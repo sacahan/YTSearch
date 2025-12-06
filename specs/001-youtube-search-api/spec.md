@@ -51,9 +51,10 @@ API 支援根據相關性、發佈日期或觀看數對結果進行排序，允�
 
 **接受情景**：
 
-1. **當** 指定 `limit=5` **則** 返回最多 5 筆結果
-2. **當** 指定 `sort_by=relevance` **則** 結果按相關性排序（預設行為）
-3. **當** 指定 `sort_by=date` **則** 結果按發佈日期新舊排序
+1. **當** 未指定 `limit` 參數 **則** 預設返回 1 筆結果（相關性最高的影片）
+2. **當** 指定 `limit=5` **則** 返回最多 5 筆結果
+3. **當** 指定 `sort_by=relevance` **則** 結果按相關性排序（預設行為）
+4. **當** 指定 `sort_by=date` **則** 結果按發佈日期新舊排序
 
 ---
 
@@ -75,6 +76,9 @@ API 支援根據相關性、發佈日期或觀看數對結果進行排序，允�
 - **FR-005**：系統必須驗證輸入關鍵字非空且長度合理（建議 1-200 字元）
 - **FR-006**：系統必須記錄所有搜尋請求與錯誤到結構化日誌中
 - **FR-007**：系統必須遵守 YouTube 服務條款，不下載或儲存媒體內容，僅提取 metadata
+- **FR-008**：系統必須實現搜尋結果快取機制，同一關鍵字的搜尋結果 TTL 為 1 小時。快取後端使用 Redis，連線參數透過環境變數配置（`REDIS_HOST`、`REDIS_PORT`、`REDIS_DB`）
+- **FR-009**：系統必須支援 `limit` 查詢參數指定返回結果數量，預設值為 1，允許值為 1-100，超過上限則返回 HTTP 400 Bad Request
+- **FR-010**：系統必須採用 RESTful API 回應格式標準。成功回應（HTTP 200）返回搜尋結果 data；失敗回應返回對應 HTTP 狀態碼（400、503 等）+ JSON 錯誤對象 `{ error: string, error_code: string }`
 
 ### 主要實體
 
@@ -85,14 +89,14 @@ API 支援根據相關性、發佈日期或觀看數對結果進行排序，允�
   - `timestamp`：搜尋時間戳記
 
 - **影片（Video）**：代表單個 YouTube 影片的 metadata
-  - `video_id`：YouTube 影片唯一識別碼
-  - `title`：影片標題
-  - `url`：影片完整 URL
-  - `channel`：頻道名稱
-  - `channel_url`：頻道 URL
-  - `publish_date`：發佈日期（若可用）
-  - `view_count`：觀看次數（若可用）
-  - `description`：影片描述摘要（若可用）
+  - `video_id`：YouTube 影片唯一識別碼（**必須**，提取失敗時該筆影片不返回）
+  - `title`：影片標題（最佳努力，無法提取時設為 null）
+  - `url`：影片完整 URL（最佳努力，無法提取時設為 null）
+  - `channel`：頻道名稱（最佳努力，無法提取時設為 null）
+  - `channel_url`：頻道 URL（最佳努力，無法提取時設為 null）
+  - `publish_date`：發佈日期（最佳努力，無法提取時設為 null）
+  - `view_count`：觀看次數（最佳努力，無法提取時設為 null）
+  - `description`：影片描述摘要（最佳努力，無法提取時設為 null）
 
 ## 成功標準 *(必須)*
 
@@ -113,6 +117,21 @@ API 支援根據相關性、發佈日期或觀看數對結果進行排序，允�
 - 不使用官方 YouTube Data API，避免 API 配額限制但需承擔頁面結構變化風險
 - POC 階段優先考慮功能可用性，而非大規模併發支援
 - 搜尋結果排序基於 YouTube 頁面的預設順序（相關性）
+- YouTube 連線故障（逾時、無法連接）時立即返回 HTTP 503 Service Unavailable，不自動重試，由客戶端決定是否稍後重新請求
+- 快取實現：同一關鍵字搜尋結果在 Redis 中快取 1 小時（TTL 3600 秒）。超過 TTL 後自動重新爬蟲。快取鍵格式為 `youtube_search:{keyword_hash}`
+- Redis 連線參數由環境變數提供：`REDIS_HOST`（預設 localhost）、`REDIS_PORT`（預設 6379）、`REDIS_DB`（預設 0）
+- Metadata 提取策略：`video_id` 為必須欄位，無法提取則該筆影片整個不返回；其他欄位（title、channel、publish_date、view_count 等）採用最佳努力提取，無法取得時設為 null，不影響整筆影片返回
+- API 回應格式遵循 RESTful 標準：成功回應（HTTP 200）直接返回 SearchResult 對象；失敗回應返回對應 HTTP 狀態碼及錯誤 JSON 對象 `{ error: "string", error_code: "string" }`。常見錯誤狀態碼包括 400（參數驗證失敗）、503（YouTube 連線故障）等
+
+## 澄清
+
+### Session 2025-12-07
+
+- Q: YouTube 連線故障（逾時、無法連接）時系統應如何回應？ → A: 立即返回 HTTP 503 Service Unavailable，不重試
+- Q: 同一關鍵字頻繁搜尋是否需要快取或速率限制？ → A: 實現 1 小時快取（Redis），無速率限制（POC 階段）
+- Q: publish_date 與 view_count 無法提取時應如何處理？ → A: 最佳努力提取，無法取得時設為 null；video_id 為必須，無法提取則該筆影片整個不返回
+- Q: 搜尋結果數量限制如何設定？ → A: 預設返回 1 筆，支援 limit 參數（1-100），超過則返回 HTTP 400
+- Q: API 回應格式標準為何？ → A: RESTful 格式，成功返回 HTTP 200 + data，失敗返回 HTTP 狀態碼 + { error, error_code }
 
 ## POC 驗證
 
