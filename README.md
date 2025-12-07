@@ -1,86 +1,182 @@
 # YouTube Search API
 
-YouTube 搜尋 API - 透過爬蟲實現零成本的影片搜尋服務
+Zero-cost YouTube video search service powered by web scraping
 
-## 功能特性
+## Features
 
-- ✅ 無需 YouTube API 金鑰，完全免費
-- ✅ RESTful API 設計
-- ✅ Redis 快取優化（1 小時 TTL）
-- ✅ 完整影片元數據提取
-- ✅ 支援排序與過濾
-- ✅ Docker 容器化部署
+- ✅ No YouTube API key required - completely free
+- ✅ RESTful API design with Swagger documentation
+- ✅ MCP (Model Context Protocol) support - integrate with AI assistants
+- ✅ Redis caching optimization (1 hour TTL)
+- ✅ Complete video metadata extraction
+- ✅ Sorting and filtering capabilities
+- ✅ Docker containerization support
 
-## 快速開始
+## Quick Start
 
-### 安裝依賴
+### Install Dependencies
 
 ```bash
 uv sync
 ```
 
-### 啟動服務
+### Start the Service
 
 ```bash
 python main.py
 ```
 
-服務將於 `http://localhost:8000` 啟動。
+The service will start at `http://localhost:8000`.
 
-### API 文檔
+### API Documentation
 
-訪問 `http://localhost:8000/docs` 查看互動式 API 文檔。
+Visit `http://localhost:8000/docs` for interactive API documentation.
 
-## API 使用範例
+## API Usage Examples
 
-### 基本搜尋
+### Basic Search
 
 ```bash
-curl "http://localhost:8000/api/v1/search?keyword=Python教學"
+curl "http://localhost:8000/api/v1/search?keyword=Python tutorial"
 ```
 
-### 指定結果數量
+### Specify Result Count
 
 ```bash
 curl "http://localhost:8000/api/v1/search?keyword=Python&limit=5"
 ```
 
-### 按日期排序
+### Sort by Date
 
 ```bash
 curl "http://localhost:8000/api/v1/search?keyword=Python&sort_by=date&limit=3"
 ```
 
-## 環境配置
+## MCP Integration (Model Context Protocol)
 
-複製 `.env.example` 為 `.env` 並根據需要修改配置：
+This service provides MCP server functionality, allowing AI assistants (such as Claude Desktop) to directly invoke YouTube search tools via the MCP protocol.
+
+### MCP Service Types
+
+- **HTTP Service**: Provided via StreamableHTTPSessionManager, integrated with existing FastAPI application
+- **Supported Transport Modes**: HTTP (MVP)
+- **Future Iterations**: Consider supporting stdio and SSE modes
+
+### REST API and MCP Coexistence
+
+- **REST API Preservation**: Existing REST API endpoints (`/api/v1/search`, etc.) remain fully functional
+- **Flexible Deployment**: Choose between integrated (same FastAPI app) or separate (independent process) deployment
+- **Backward Compatibility**: MCP additions do not modify any existing REST API signatures or behaviors
+
+### MCP Configuration
+
+#### Claude Desktop Setup
+
+Add the following to Claude Desktop's configuration file (`~/.config/claude/settings.json` or `%APPDATA%\Claude\settings.json`):
+
+```json
+{
+  "servers": {
+    "youtube-search-mcp": {
+      "command": "uv",
+      "args": ["run", "python", "mcp_stdio.py"],
+      "env": {
+        "MCP_SEARCH_TIMEOUT": "15",
+        "MCP_SEARCH_RETRIES": "3",
+        "PYTHONUNBUFFERED": "1"
+      }
+    }
+  }
+}
+```
+
+#### Environment Variables
+
+- `MCP_SEARCH_TIMEOUT` (default: 15 seconds): Search operation timeout
+- `MCP_SEARCH_RETRIES` (default: 3 times): Retry attempts on search failure
+- `REDIS_HOST`, `REDIS_PORT`, `REDIS_DB`: Redis cache configuration (optional)
+
+### Starting the MCP Server
+
+```bash
+# Start MCP server (stdio mode)
+python mcp_stdio.py
+
+# Or using uv
+uv run python mcp_stdio.py
+```
+
+### MCP Tool: youtube_search
+
+**Tool Name**: `youtube_search`
+
+**Description**: Search YouTube videos and return complete metadata
+
+**Parameters**:
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `keyword` | string | ✅ | - | Search keyword (1-200 characters) |
+| `limit` | integer | ❌ | 1 | Number of results to return (1-100) |
+| `sort_by` | string | ❌ | relevance | Sort order: `relevance` or `date` |
+
+**Response Format**:
+
+```json
+{
+  "videos": [
+    {
+      "video_id": "mIF-nn_y2_8",
+      "title": "Jackie Cheung - Farewell Kiss",
+      "channel": "Music Without Boundaries",
+      "url": "https://www.youtube.com/watch?v=mIF-nn_y2_8",
+      "channel_url": "https://www.youtube.com/@channel_name",
+      "publish_date": "2020-01-15",
+      "view_count": "1500000",
+      "description": "Classic Cantonese song..."
+    }
+  ],
+  "message": "Successfully returned 1 result"
+}
+```
+
+**Error Handling**:
+
+- Empty keyword: Returns `{"error": "INVALID_KEYWORD", "message": "Search keyword cannot be empty..."}`
+- Invalid limit: Returns `{"error": "INVALID_LIMIT", "message": "limit must be between 1-100..."}`
+- YouTube service unavailable: Returns `{"error": "SERVICE_UNAVAILABLE", "message": "YouTube service is temporarily unavailable..."}`
+- Cache service failure: Gracefully degrades to direct search and returns normal results
+
+## Environment Configuration
+
+Copy `.env.example` to `.env` and modify as needed:
 
 ```bash
 cp .env.example .env
 ```
 
-## Docker 部署
+## Docker Deployment
 
 ```bash
 docker-compose up -d
 ```
 
-## 測試
+## Testing
 
 ```bash
 pytest tests/
 ```
 
-## 專案結構
+## Project Structure
 
 ```
 src/youtube_search/
-├── models/          # Pydantic 資料模型
-├── services/        # 業務邏輯層
-├── api/             # API 路由
-└── utils/           # 工具函式
+├── models/          # Pydantic data models
+├── services/        # Business logic layer
+├── api/             # API routes
+└── utils/           # Utility functions
 ```
 
-## 授權
+## License
 
 MIT License
