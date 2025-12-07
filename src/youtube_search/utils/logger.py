@@ -22,8 +22,45 @@ LOG_FORMAT = "%(asctime)s %(levelname)-8s %(name)-30s %(message)s"
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 
-class ExtraFormatter(logging.Formatter):
-    """Custom formatter with colors and structured extra fields."""
+class BaseExtraFormatter(logging.Formatter):
+    """Base formatter with extra fields support."""
+
+    def get_extra_items(self, record: logging.LogRecord) -> dict:
+        """Extract extra fields from log record."""
+        standard_attrs = {
+            "name",
+            "msg",
+            "args",
+            "created",
+            "filename",
+            "funcName",
+            "levelname",
+            "levelno",
+            "lineno",
+            "module",
+            "msecs",
+            "message",
+            "pathname",
+            "process",
+            "processName",
+            "relativeCreated",
+            "thread",
+            "threadName",
+            "exc_info",
+            "exc_text",
+            "stack_info",
+            "asctime",
+        }
+
+        return {
+            k: v
+            for k, v in record.__dict__.items()
+            if k not in standard_attrs and not k.startswith("_") and k != "taskName"
+        }
+
+
+class ExtraFormatter(BaseExtraFormatter):
+    """Custom formatter with colors and structured extra fields for console."""
 
     def format(self, record: logging.LogRecord) -> str:
         # Add color to level name
@@ -39,19 +76,8 @@ class ExtraFormatter(logging.Formatter):
             f"{COLORS['DIM']}[{record.filename}:{record.lineno} {record.funcName}]{COLORS['RESET']}"
         )
 
-        # Collect extra fields (exclude standard LogRecord attributes)
-        standard_attrs = {
-            "name", "msg", "args", "created", "filename", "funcName", "levelname",
-            "levelno", "lineno", "module", "msecs", "message", "pathname", "process",
-            "processName", "relativeCreated", "thread", "threadName", "exc_info",
-            "exc_text", "stack_info", "asctime",
-        }
-
-        extra_items = {
-            k: v
-            for k, v in record.__dict__.items()
-            if k not in standard_attrs and not k.startswith("_") and k != "taskName"
-        }
+        # Get extra items
+        extra_items = self.get_extra_items(record)
 
         # Format extra fields with colors
         if extra_items:
@@ -72,8 +98,28 @@ class ExtraFormatter(logging.Formatter):
         return f"{base_msg} {location}"
 
 
+class PlainExtraFormatter(BaseExtraFormatter):
+    """Plain formatter without colors for file output."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        # Format base message
+        base_msg = super().format(record)
+
+        # Get extra items
+        extra_items = self.get_extra_items(record)
+
+        # Format extra fields without colors
+        if extra_items:
+            extra_str = " ".join(f"{k}={v}" for k, v in sorted(extra_items.items()))
+            return f"{base_msg} | {extra_str}"
+
+        return base_msg
+
+
 def configure_logging(level: Optional[str] = None) -> None:
-    """Configure root logger with UTC timestamps."""
+    """Configure root logger with UTC timestamps and file output."""
+    from logging.handlers import RotatingFileHandler
+    from pathlib import Path
 
     settings = get_settings()
     effective_level = (level or settings.api_log_level).upper()
@@ -84,10 +130,37 @@ def configure_logging(level: Optional[str] = None) -> None:
     for handler in root_logger.handlers[:]:
         root_logger.removeHandler(handler)
 
-    # Configure with custom formatter
-    handler = logging.StreamHandler()
-    handler.setFormatter(ExtraFormatter(LOG_FORMAT, DATE_FORMAT))
-    root_logger.addHandler(handler)
+    # Configure console handler with colors
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(ExtraFormatter(LOG_FORMAT, DATE_FORMAT))
+    root_logger.addHandler(console_handler)
+
+    # Configure file handler if enabled
+    if settings.log_file_enabled:
+        # Create log directory if it doesn't exist
+        log_dir = Path(settings.log_dir)
+        log_dir.mkdir(parents=True, exist_ok=True)
+
+        # Generate log filename with date
+        log_file = log_dir / f"youtube_search_{time.strftime('%Y%m%d')}.log"
+
+        # Create rotating file handler
+        file_handler = RotatingFileHandler(
+            filename=str(log_file),
+            maxBytes=settings.log_file_max_bytes,
+            backupCount=settings.log_file_backup_count,
+            encoding="utf-8",
+        )
+
+        # Use plain format for file (no colors)
+        file_format = (
+            "%(asctime)s %(levelname)-8s %(name)-30s "
+            "%(message)s [%(filename)s:%(lineno)d %(funcName)s]"
+        )
+        file_formatter = PlainExtraFormatter(file_format, DATE_FORMAT)
+        file_handler.setFormatter(file_formatter)
+        root_logger.addHandler(file_handler)
+
     root_logger.setLevel(effective_level)
 
 

@@ -56,6 +56,25 @@ class Settings(BaseSettings):
         description="Log level for the API server.",
     )
 
+    log_dir: str = Field(
+        default="logs",
+        description="Directory path for log files.",
+    )
+    log_file_enabled: bool = Field(
+        default=True,
+        description="Enable logging to file.",
+    )
+    log_file_max_bytes: int = Field(
+        default=10485760,
+        ge=1048576,
+        description="Maximum log file size in bytes (default 10MB).",
+    )
+    log_file_backup_count: int = Field(
+        default=5,
+        ge=0,
+        description="Number of backup log files to keep.",
+    )
+
     enable_cache: bool = Field(
         default=True,
         description="Enable in-process cache usage alongside Redis toggle.",

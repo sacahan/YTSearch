@@ -163,14 +163,41 @@ pull_image() {
 
 # 查看日誌
 show_logs() {
-    local container=$1
+    local type=${1:-app}
 
-    if [ -z "$container" ]; then
-        container="$CONTAINER_NAME"
-    fi
+    case "$type" in
+        docker|container)
+            echo -e "${BLUE}📋 顯示容器日誌（按 Ctrl+C 退出）...${NC}"
+            docker logs -f "$CONTAINER_NAME"
+            ;;
+        app|file|*)
+            # 查看應用日誌文件
+            if [ ! -d "$LOGS_DIR" ]; then
+                echo -e "${YELLOW}⚠️  日誌目錄不存在: $LOGS_DIR${NC}"
+                echo -e "${YELLOW}提示: 啟動容器後日誌文件會自動創建${NC}"
+                return 1
+            fi
 
-    echo -e "${BLUE}📋 顯示 $container 容器日誌（按 Ctrl+C 退出）...${NC}"
-    docker logs -f "$container"
+            local log_files=("$LOGS_DIR"/youtube_search_*.log)
+
+            if [ ! -e "${log_files[0]}" ]; then
+                echo -e "${YELLOW}⚠️  未找到應用日誌文件${NC}"
+                echo -e "${YELLOW}提示: 啟動容器後日誌文件會自動創建${NC}"
+                return 1
+            fi
+
+            echo -e "${BLUE}📄 可用的日誌文件：${NC}"
+            ls -lh "$LOGS_DIR"/youtube_search_*.log
+            echo ""
+
+            # 找到最新的日誌文件
+            local latest_log=$(ls -t "$LOGS_DIR"/youtube_search_*.log | head -1)
+            echo -e "${BLUE}📋 查看應用日誌: $(basename "$latest_log")${NC}"
+            echo -e "${BLUE}   (按 Ctrl+C 退出)${NC}"
+            echo ""
+            tail -f "$latest_log"
+            ;;
+    esac
 }
 
 # 進入容器 shell
@@ -230,7 +257,9 @@ YTSearch Docker 執行腳本
   down       停止並移除容器
   restart    重啟容器
   pull       拉取鏡像
-  logs       查看日誌
+  logs       查看應用日誌文件（預設）
+             logs docker  - 查看容器日誌
+             logs app     - 查看應用日誌文件
   shell      進入容器 shell
   info       服務信息
   clean      清理資源
@@ -245,7 +274,8 @@ YTSearch Docker 執行腳本
      ./run_docker.sh up
 
   3. 查看日誌:
-     ./run_docker.sh logs
+     ./run_docker.sh logs          # 應用日誌（預設）
+     ./run_docker.sh logs docker   # 容器日誌
 
   4. 停止並移除服務:
      ./run_docker.sh down
@@ -257,7 +287,7 @@ YTSearch Docker 執行腳本
 
 📝 環境配置:
   配置文件: .env.docker
-  日誌目錄: logs/
+  日誌目錄: logs/ (應用日誌: youtube_search_YYYYMMDD.log)
   輸出目錄: output/
 
 💡 更多幫助: ./run_docker.sh info
@@ -277,7 +307,8 @@ show_info() {
     echo -e "  輸出: ${OUTPUT_DIR}"
     echo ""
     echo -e "${BLUE}常用命令：${NC}"
-    echo -e "  查看日誌: ${GREEN}./run_docker.sh logs${NC}"
+    echo -e "  查看應用日誌: ${GREEN}./run_docker.sh logs${NC}"
+    echo -e "  查看容器日誌: ${GREEN}./run_docker.sh logs docker${NC}"
     echo -e "  進入 Shell: ${GREEN}./run_docker.sh shell${NC}"
     echo -e "  停止並移除服務: ${GREEN}./run_docker.sh down${NC}"
 }
@@ -300,7 +331,7 @@ main() {
         pull_image
         ;;
     logs)
-        show_logs "${2:-$CONTAINER_NAME}"
+        show_logs "${2:-app}"
         ;;
     shell)
         enter_shell "${2:-$CONTAINER_NAME}"
@@ -324,7 +355,7 @@ main() {
         echo "  down    - 停止並移除服務"
         echo "  restart - 重啟服務"
         echo "  pull    - 拉取鏡像"
-        echo "  logs    - 查看日誌"
+        echo "  logs    - 查看應用日誌"
         echo "  shell   - 進入容器"
         echo "  info    - 顯示信息"
         echo "  clean   - 清理資源"
