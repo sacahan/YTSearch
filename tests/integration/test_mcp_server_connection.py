@@ -14,16 +14,9 @@
     FR-013: 支援 HTTP 傳輸模式
 """
 
-import sys
-from pathlib import Path
-
 import pytest
 
-# 動態添加 src 目錄到 sys.path 以支持可移植的導入
-src_path = Path(__file__).parent.parent.parent / "src"
-if str(src_path) not in sys.path:
-    sys.path.insert(0, str(src_path))
-
+# Python path setup is handled by tests/conftest.py
 from youtube_search.mcp.server import create_mcp_server
 
 

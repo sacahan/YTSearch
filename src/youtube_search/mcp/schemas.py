@@ -45,9 +45,9 @@ class YouTubeSearchInput(BaseModel):
         sort_by: 排序方式 ('relevance' 或 'date')，預設 'relevance'（可選）
     
     注意：
-        - 欄位別名通過 Pydantic 的 populate_by_name=True 自動處理
-        - 使用主要欄位名稱（keyword, limit）以保持內部一致性
-        - 別名（query, max_results）提供向後兼容性
+        - populate_by_name=True 允許在初始化時使用欄位名稱或別名
+        - 初始化後，僅能通過主要欄位名稱訪問（keyword, limit），而非別名
+        - 別名（query, max_results）僅在構造時有效，提供向後兼容性
     """
 
     model_config = ConfigDict(
@@ -67,14 +67,14 @@ class YouTubeSearchInput(BaseModel):
         alias="query",
         min_length=1,
         max_length=200,
-        description="搜尋關鍵詞（必填，1-200 字元）。可使用 'keyword' 或別名 'query' 提供此參數。",
+        description="搜尋關鍵詞（必填，1-200 字元）。主要欄位名稱為 'keyword'（內部使用），也可使用別名 'query'（外部 API 兼容）提供此參數。",
     )
     limit: int = Field(
         default=1,
         alias="max_results",
         ge=1,
         le=100,
-        description="最大返回結果數量（可選，1-100，預設 1）。可使用 'limit' 或別名 'max_results' 提供此參數。",
+        description="最大返回結果數量（可選，1-100，預設 1）。主要欄位名稱為 'limit'（內部使用），也可使用別名 'max_results'（外部 API 兼容）提供此參數。",
     )
     sort_by: str = Field(
         default="relevance",
@@ -89,6 +89,17 @@ class YouTubeSearchInput(BaseModel):
         if not value or not value.strip():
             raise ValueError("搜尋關鍵字不能為空，請提供 1-200 字符的關鍵字")
         return value.strip()
+
+    # 提供屬性別名以支援向後兼容（用於測試和外部 API）
+    @property
+    def query(self) -> str:
+        """返回 keyword 的別名（向後兼容）"""
+        return self.keyword
+
+    @property
+    def max_results(self) -> int:
+        """返回 limit 的別名（向後兼容）"""
+        return self.limit
 
 
 class YouTubeSearchOutput(BaseModel):
