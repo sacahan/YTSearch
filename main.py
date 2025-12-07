@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import FastAPI
 
 from youtube_search.api.v1.search import router as search_router
+from youtube_search.services.cache import get_cache_service
 from youtube_search.utils.logger import configure_logging, get_logger
 
 configure_logging()
@@ -12,6 +13,20 @@ logger = get_logger(__name__)
 
 app = FastAPI(title="YouTube 搜尋 API", version="1.0.0")
 app.include_router(search_router)
+
+
+@app.on_event("startup")
+async def startup_event() -> None:
+    """Initialize services on application startup."""
+
+    logger.info("Starting YouTube Search API...")
+
+    # Initialize and test Redis connection
+    cache_service = get_cache_service()
+    if cache_service.client:
+        logger.info("Redis cache service initialized and ready")
+    else:
+        logger.warning("Running without Redis cache - all searches will be live")
 
 
 @app.get("/health", tags=["health"])

@@ -32,9 +32,21 @@ IMAGE_NAME="sacahan/ytsearch:latest"
 CONTAINER_NAME="ytsearch"
 HOST_PORT="8441"
 
+# Docker 網路名稱
+NETWORK_NAME="sacahan-network"
+
 # 日誌和輸出目錄
 LOGS_DIR="${SCRIPT_DIR}/logs"
 OUTPUT_DIR="${SCRIPT_DIR}/output"
+
+# 確保 Docker 網路存在
+ensure_network() {
+	if ! docker network ls --format '{{.Name}}' | grep -q "^${NETWORK_NAME}$"; then
+		echo -e "${BLUE}📡 建立 Docker 網路: $NETWORK_NAME${NC}"
+		docker network create "$NETWORK_NAME"
+		echo -e "${GREEN}✓ Docker 網路已建立${NC}"
+	fi
+}
 
 # 檢查 .env.docker 是否存在
 check_env_file() {
@@ -55,6 +67,7 @@ check_env_file() {
 
 # 啟動後端容器
 start_container() {
+    ensure_network
     check_env_file
 
     # 確保目錄存在
@@ -78,6 +91,7 @@ start_container() {
 
     docker run -d \
         --name "$CONTAINER_NAME" \
+        --network "$NETWORK_NAME" \
         -p "${HOST_PORT}:8000" \
         --env-file "$ENV_FILE" \
         -v "${LOGS_DIR}:/app/logs" \

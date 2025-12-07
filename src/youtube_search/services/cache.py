@@ -55,15 +55,29 @@ class CacheService:
                     },
                 )
             except (redis.RedisError, OSError) as exc:  # pragma: no cover
-                logger.warning(
+                import socket
+
+                # Try to get more diagnostic information
+                diagnostic_info = {
+                    "error": str(exc),
+                    "error_type": type(exc).__name__,
+                    "host": settings.redis_host,
+                    "port": settings.redis_port,
+                    "db": settings.redis_db,
+                    "status": "disconnected",
+                }
+
+                # Try DNS resolution
+                try:
+                    resolved_ip = socket.gethostbyname(settings.redis_host)
+                    diagnostic_info["resolved_ip"] = resolved_ip
+                except socket.gaierror as dns_error:
+                    diagnostic_info["dns_error"] = str(dns_error)
+                    diagnostic_info["dns_resolution"] = "failed"
+
+                logger.error(
                     "Redis connection failed - running without cache",
-                    extra={
-                        "error": str(exc),
-                        "error_type": type(exc).__name__,
-                        "host": settings.redis_host,
-                        "port": settings.redis_port,
-                        "status": "disconnected",
-                    },
+                    extra=diagnostic_info,
                 )
                 self.client = None
         else:
