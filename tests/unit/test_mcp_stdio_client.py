@@ -88,9 +88,6 @@ async def test_mcp_stdio_server():
 
 async def main():
     """主函數"""
-    # 確保在正確的目錄
-    os.chdir(Path(__file__).parent)
-
     success = await test_mcp_stdio_server()
     sys.exit(0 if success else 1)
 

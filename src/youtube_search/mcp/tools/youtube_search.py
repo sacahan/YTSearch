@@ -226,8 +226,8 @@ class YouTubeSearchTool:
                 if error_type == "missing" and field in ("keyword", "query"):
                     raise ValueError("搜尋關鍵字不能為空，請提供 1-200 字符的關鍵字")
                 
-                # 處理數值範圍錯誤
-                elif error_type in ("less_than_equal", "greater_than_equal") and field in ("limit", "max_results"):
+                # 處理數值範圍錯誤（Pydantic v2 使用 'less_than_or_equal' 和 'greater_than_or_equal'）
+                elif error_type in ("less_than_or_equal", "greater_than_or_equal") and field in ("limit", "max_results"):
                     # 優先使用 limit（主要欄位名），若不存在則使用 max_results（別名）
                     actual_value = params.get("limit") if "limit" in params else params.get("max_results")
                     raise ValueError(f"limit 必須在 1-100 之間，當前值：{actual_value}")
