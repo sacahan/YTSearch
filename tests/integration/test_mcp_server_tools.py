@@ -15,12 +15,9 @@
     FR-012: 確保 MCP 回應格式符合協定規範
 """
 
-import sys
-
 import pytest
 
-sys.path.insert(0, "/Users/sacahan/Documents/workspace/YTSearch/src")
-
+# Python path setup is handled by tests/conftest.py
 from youtube_search.mcp.server import get_mcp_server_manager
 
 

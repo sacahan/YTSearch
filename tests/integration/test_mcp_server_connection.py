@@ -14,12 +14,9 @@
     FR-013: 支援 HTTP 傳輸模式
 """
 
-import sys
-
 import pytest
 
-sys.path.insert(0, "/Users/sacahan/Documents/workspace/YTSearch/src")
-
+# Python path setup is handled by tests/conftest.py
 from youtube_search.mcp.server import create_mcp_server
 
 

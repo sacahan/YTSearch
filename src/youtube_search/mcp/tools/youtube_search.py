@@ -29,6 +29,8 @@
 import asyncio
 from typing import Any
 
+from pydantic import ValidationError
+
 from youtube_search.config import get_settings
 from youtube_search.mcp.schemas import YouTubeSearchInput, YouTubeSearchOutput
 from youtube_search.services.search import get_search_service
@@ -211,26 +213,46 @@ class YouTubeSearchTool:
             # 使用 Pydantic 進行驗證（自動提供詳細的錯誤訊息）
             input_model = YouTubeSearchInput(**params)
             return input_model
-        except ValueError as e:
-            # 捕捉 Pydantic 驗證錯誤，轉換為 MCP 相容的錯誤訊息
-            error_str = str(e)
+        except ValidationError as e:
+            # 使用 Pydantic 的結構化錯誤資訊，而非字串匹配（更穩健）
+            errors = e.errors()
+            
+            # 根據錯誤類型和欄位提供更詳細的錯誤訊息（FR-007）
+            error_messages = []
+            for error in errors:
+                error_type = error.get("type", "")
+                # 安全地提取欄位名稱（處理空或嵌套路徑的情況）
+                loc = error.get("loc", ())
+                field = str(loc[0]) if loc else ""
 
-            # 根據錯誤類型提供更詳細的錯誤訊息（FR-007）
-            if "keyword" in error_str or "Field required" in error_str:
-                raise ValueError("搜尋關鍵字不能為空，請提供 1-200 字符的關鍵字")
-            elif (
-                "ensure this value is less than or equal to 100" in error_str
-                or "ensure this value is greater than or equal to 1" in error_str
-            ):
-                raise ValueError(f"limit 必須在 1-100 之間，當前值：{params.get('limit')}")
-            elif "sort_by" in error_str:
-                raise ValueError(
-                    f"sort_by 只能是 'relevance' 或 'date'，當前值：{params.get('sort_by')}"
-                )
-            else:
-                # 通用錯誤訊息
-                raise ValueError(f"參數驗證失敗：{error_str}")
+                # 處理缺少必填欄位錯誤（Pydantic 使用實際欄位名稱，不是別名）
+                if error_type == "missing" and field == "keyword":
+                    error_messages.append("搜尋關鍵字不能為空，請提供 1-200 字符的關鍵字")
 
+                # 處理數值範圍錯誤（Pydantic v2 使用 'less_than_or_equal' 和 'greater_than_or_equal'）
+                # 注意：Pydantic 報告錯誤時使用實際欄位名稱 'limit'，不是別名 'max_results'
+                elif error_type in ("less_than_or_equal", "greater_than_or_equal") and field == "limit":
+                    # 獲取實際提供的值（可能是 limit 或 max_results）
+                    actual_value = params.get("limit") or params.get("max_results")
+                    error_messages.append(f"limit 必須在 1-100 之間，當前值：{actual_value}")
+
+                # 處理字串模式錯誤（用於 sort_by 的正則驗證）
+                elif error_type == "string_pattern_mismatch" and field == "sort_by":
+                    error_messages.append(
+                        f"sort_by 只能是 'relevance' 或 'date'，當前值：{params.get('sort_by')}"
+                    )
+
+                # 處理自定義驗證錯誤（來自 field_validator）
+                elif error_type == "value_error":
+                    # 自定義驗證器已經提供了清晰的錯誤訊息
+                    error_messages.append(error.get("msg", "參數驗證失敗"))
+                else:
+                    # 通用錯誤訊息（當沒有匹配到特定錯誤類型時）
+                    msg = error.get("msg") or f"驗證錯誤類型: {error.get('type', 'unknown')}"
+                    error_messages.append(msg)
+
+            if error_messages:
+                raise ValueError(f"參數驗證失敗：{'; '.join(error_messages)}")
     async def _search_with_retries(self, keyword: str, limit: int, sort_by: str) -> dict[str, Any]:
         """帶重試邏輯的搜尋執行（US3-AC4, FR-010）
 

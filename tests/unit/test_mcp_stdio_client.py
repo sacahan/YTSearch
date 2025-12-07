@@ -19,10 +19,14 @@ from mcp.client.stdio import StdioServerParameters, stdio_client
 async def test_mcp_stdio_server():
     """測試 MCP stdio 伺服器"""
 
+    # 使用相對路徑定位 mcp_stdio.py（位於項目根目錄）
+    project_root = Path(__file__).parent.parent.parent
+    mcp_stdio_path = project_root / "mcp_stdio.py"
+    
     # 創建伺服器參數
     server_params = StdioServerParameters(
         command="uv",
-        args=["run", "python", "mcp_stdio.py"],
+        args=["run", "python", str(mcp_stdio_path)],
         env={
             **os.environ,
             "PYTHONUNBUFFERED": "1",
@@ -84,9 +88,6 @@ async def test_mcp_stdio_server():
 
 async def main():
     """主函數"""
-    # 確保在正確的目錄
-    os.chdir(Path(__file__).parent)
-
     success = await test_mcp_stdio_server()
     sys.exit(0 if success else 1)
 
