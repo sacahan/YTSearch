@@ -15,10 +15,14 @@
 """
 
 import sys
+from pathlib import Path
 
 import pytest
 
-sys.path.insert(0, "/Users/sacahan/Documents/workspace/YTSearch/src")
+# 動態添加 src 目錄到 sys.path 以支持可移植的導入
+src_path = Path(__file__).parent.parent.parent / "src"
+if str(src_path) not in sys.path:
+    sys.path.insert(0, str(src_path))
 
 from youtube_search.mcp.server import create_mcp_server
 
