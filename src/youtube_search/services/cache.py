@@ -22,7 +22,17 @@ class CacheService:
         settings = get_settings()
         if redis_client:
             self.client = redis_client
+            logger.info("Using provided Redis client")
         elif settings.redis_enabled:
+            logger.info(
+                "Attempting to connect to Redis",
+                extra={
+                    "host": settings.redis_host,
+                    "port": settings.redis_port,
+                    "db": settings.redis_db,
+                    "has_password": bool(settings.redis_password),
+                },
+            )
             try:
                 self.client = redis.Redis(
                     host=settings.redis_host,
@@ -35,10 +45,29 @@ class CacheService:
                 )
                 # Test connection
                 self.client.ping()
+                logger.info(
+                    "Redis connection established successfully",
+                    extra={
+                        "host": settings.redis_host,
+                        "port": settings.redis_port,
+                        "db": settings.redis_db,
+                        "status": "connected",
+                    },
+                )
             except (redis.RedisError, OSError) as exc:  # pragma: no cover
-                logger.warning("Redis connection failed", extra={"error": str(exc)})
+                logger.warning(
+                    "Redis connection failed - running without cache",
+                    extra={
+                        "error": str(exc),
+                        "error_type": type(exc).__name__,
+                        "host": settings.redis_host,
+                        "port": settings.redis_port,
+                        "status": "disconnected",
+                    },
+                )
                 self.client = None
         else:
+            logger.info("Redis cache is disabled by configuration", extra={"status": "disabled"})
             self.client = None
         self.ttl = settings.redis_ttl_seconds
 
