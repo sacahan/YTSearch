@@ -223,12 +223,14 @@ class YouTubeSearchTool:
                 field = error.get("loc", [""])[0] if error.get("loc") else ""
                 
                 # 處理缺少必填欄位錯誤
-                if error_type == "missing" or (field in ("keyword", "query")):
+                if error_type == "missing" and field in ("keyword", "query"):
                     raise ValueError("搜尋關鍵字不能為空，請提供 1-200 字符的關鍵字")
                 
                 # 處理數值範圍錯誤
                 elif error_type in ("less_than_equal", "greater_than_equal") and field in ("limit", "max_results"):
-                    raise ValueError(f"limit 必須在 1-100 之間，當前值：{params.get('limit', params.get('max_results'))}")
+                    # 優先使用 limit（主要欄位名），若不存在則使用 max_results（別名）
+                    actual_value = params.get("limit") if "limit" in params else params.get("max_results")
+                    raise ValueError(f"limit 必須在 1-100 之間，當前值：{actual_value}")
                 
                 # 處理字串模式錯誤（用於 sort_by 的正則驗證）
                 elif error_type == "string_pattern_mismatch" and field == "sort_by":

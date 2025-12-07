@@ -15,7 +15,6 @@
     FR-012: 確保 MCP 回應格式符合協定規範
 """
 
-import os
 import sys
 from pathlib import Path
 
