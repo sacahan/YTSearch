@@ -75,6 +75,26 @@ class Settings(BaseSettings):
         description="Number of backup log files to keep.",
     )
 
+    # MCP Configuration - P2 Feature (Model Context Protocol Support)
+    mcp_search_timeout: int = Field(
+        default=15,
+        ge=1,
+        le=120,
+        description="MCP tool call timeout in seconds (via MCP_SEARCH_TIMEOUT env var).",
+    )
+    mcp_search_retries: int = Field(
+        default=3,
+        ge=0,
+        le=10,
+        description="Number of retries for MCP tool calls (via MCP_SEARCH_RETRIES env var).",
+    )
+    mcp_port: int = Field(
+        default=8441,
+        ge=1,
+        le=65535,
+        description="MCP server port (for HTTP transport).",
+    )
+
     enable_cache: bool = Field(
         default=True,
         description="Enable in-process cache usage alongside Redis toggle.",
