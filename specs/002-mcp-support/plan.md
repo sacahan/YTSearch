@@ -415,21 +415,34 @@ pytest tests/unit/test_youtube_search_tool.py::test_cache_service_degradation
 
 #### 3.3 Docker 部署驗證
 
-**工作項**：驗證 Docker 容器中的 MCP 功能
+**工作項**：驗證 Docker 容器中的 MCP 功能（遵循 `scripts/build_docker.sh` 和 `scripts/run_docker.sh`）
 
 **檔案**：
-- `Dockerfile` - 驗證（可能需微調）
-- `docker-compose.yml` 或部署指令
+- `Dockerfile` - 驗證並確保 MCP 層依賴包含
+- `scripts/build_docker.sh` - 多平台構建腳本（arm64/amd64）
+- `scripts/run_docker.sh` - 容器運行和管理腳本
+- `scripts/.env.docker` - Docker 環境配置
 
 **驗證內容**：
-1. 構建 Docker 映像（包含 MCP 層）
-2. 啟動容器
-3. 驗證 MCP 伺服器在容器中正常運行
-4. 測試外部客戶端連接
+1. 使用 `./scripts/build_docker.sh --platform arm64 --action build` 構建映像（包含 MCP 層）
+2. 使用 `./scripts/run_docker.sh up` 啟動容器
+3. 使用 `./scripts/run_docker.sh logs` 查看日誌驗證 MCP 伺服器正常運行
+4. 使用 `./scripts/run_docker.sh shell` 進入容器進行手動驗證
+5. 測試外部 MCP 客戶端連接到容器中的 MCP 伺服器
+6. 使用 `./scripts/run_docker.sh down` 正確清理容器
 
 **接受標準**：
-- 容器中 MCP 伺服器正常運行
-- 可從主機連接到容器中的 MCP 伺服器
+- ✅ Docker 映像構建成功（支援多平台 arm64/amd64）
+- ✅ 容器正常啟動，MCP 伺服器在日誌中顯示啟動訊息
+- ✅ 可從主機連接到容器中的 MCP 伺服器（預設埠位：8441）
+- ✅ 容器生命周期管理正常（啟動、停止、重啟、日誌查看）
+- ✅ 環境變數配置正確加載（MCP_SEARCH_TIMEOUT、MCP_SEARCH_RETRIES）
+
+**注意**：參考現行最佳實踐
+- `build_docker.sh`：支援互動式選擇平台（arm64/amd64/all）和操作（build/push/build-push）
+- `run_docker.sh`：提供完整的容器生命周期管理（up/down/restart/pull/logs/shell/clean）
+- Docker 網路：自動建立並使用 `sacahan-network`
+- 日誌目錄：掛載 `scripts/logs/` 以供外部查看應用日誌
 
 **估時**：0.5 天
 
@@ -439,24 +452,30 @@ pytest tests/unit/test_youtube_search_tool.py::test_cache_service_degradation
 
 **檔案**：
 - `pyproject.toml` - 新增 mcp 依賴
-- `README.md` - 新增 MCP 功能部分
-- `.env.example` - 新增 MCP 配置
-- `Dockerfile` - 如需調整
+- `README.md` - 新增 MCP 功能部分和 Docker 使用指南
+- `scripts/.env.docker` - Docker 環境配置模板
+- `.env.example` - 新增 MCP 配置（主應用用）
+- `Dockerfile` - 如需調整以支援 MCP 層
 
 **內容**：
-1. 在 pyproject.toml 中新增 `mcp>=1.0.0`
-2. 更新 README 說明 MCP 功能和配置
-3. 更新 .env.example 包含 MCP 環境變數
-4. 確保 quickstart.md 是最新的
+1. 在 pyproject.toml 中新增 `mcp>=1.0.0` 及相關依賴
+2. 更新 README.md：
+   - 說明 MCP 功能特性
+   - MCP 伺服器配置和環境變數（MCP_SEARCH_TIMEOUT、MCP_SEARCH_RETRIES）
+   - Docker 使用指南（參考 `scripts/build_docker.sh` 和 `scripts/run_docker.sh` 用法）
+   - 快速開始：`./scripts/build_docker.sh --platform arm64 --action build` → `./scripts/run_docker.sh up`
+3. 在 `scripts/.env.docker` 中新增 MCP 環境變數範例
+4. 在 `.env.example` 中新增 MCP 環境變數（主應用用）
+5. 確保 `quickstart.md` 包含 Docker 部署說明
 
 **估時**：0.5 天
 
 **Phase 3 交付物**：
 - 完整的整合系統（MCP + 既有 API）
 - `tests/integration/test_mcp_end_to_end.py` - 系統整合測試
-- 更新的 Docker 配置
-- 更新的文件（README、.env.example）
-- `pyproject.toml` 包含新依賴
+- 驗證的 Docker 配置（Dockerfile + build_docker.sh + run_docker.sh）
+- 完整的文件（README、.env.example、quickstart.md）
+- `pyproject.toml` 包含新依賴和版本資訊
 
 ---
 
