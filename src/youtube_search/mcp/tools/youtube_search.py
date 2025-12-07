@@ -224,12 +224,13 @@ class YouTubeSearchTool:
                 loc = error.get("loc", ())
                 field = str(loc[0]) if loc else ""
                 
-                # 處理缺少必填欄位錯誤
-                if error_type == "missing" and field in ("keyword", "query"):
+                # 處理缺少必填欄位錯誤（Pydantic 使用實際欄位名稱，不是別名）
+                if error_type == "missing" and field == "keyword":
                     raise ValueError("搜尋關鍵字不能為空，請提供 1-200 字符的關鍵字")
                 
                 # 處理數值範圍錯誤（Pydantic v2 使用 'less_than_or_equal' 和 'greater_than_or_equal'）
-                elif error_type in ("less_than_or_equal", "greater_than_or_equal") and field in ("limit", "max_results"):
+                # 注意：Pydantic 報告錯誤時使用實際欄位名稱 'limit'，不是別名 'max_results'
+                elif error_type in ("less_than_or_equal", "greater_than_or_equal") and field == "limit":
                     # 獲取實際提供的值（可能是 limit 或 max_results）
                     actual_value = params.get("limit") or params.get("max_results")
                     raise ValueError(f"limit 必須在 1-100 之間，當前值：{actual_value}")
