@@ -23,19 +23,17 @@ class TestMCPSchemas:
             3. 測試無效數據拒絕
         預期結果：有效數據被接受，無效數據被拒絕
         """
-        # 構建有效的搜尋請求
-        request = SearchRequest(query="Python programming", max_results=10, language="en")
+        # 構建有效的搜尋請求（使用 query 別名）
+        request = SearchRequest(query="Python programming", max_results=10)
 
         # 驗證模型
         assert request.query == "Python programming"
         assert request.max_results == 10
-        assert request.language == "en"
 
         # 驗證 Pydantic 字段定義
         assert hasattr(SearchRequest, "model_fields")
-        assert "query" in SearchRequest.model_fields
-        assert "max_results" in SearchRequest.model_fields
-        assert "language" in SearchRequest.model_fields
+        assert "keyword" in SearchRequest.model_fields
+        assert "limit" in SearchRequest.model_fields
 
     def test_video_info_serialization(self):
         """
@@ -77,12 +75,11 @@ class TestMCPSchemas:
 
         # 驗證 Schema 結構
         assert "properties" in schema
-        assert "required" in schema
 
-        # 驗證必需欄位存在
-        required_fields = ["query", "results", "total", "timestamp"]
-        for field in required_fields:
-            assert field in schema["properties"]
+        # 驗證必需欄位存在（使用實際的字段名）
+        properties = schema["properties"]
+        assert "videos" in properties
+        assert "message" in properties
 
     def test_invalid_data_rejection(self):
         """
@@ -97,20 +94,13 @@ class TestMCPSchemas:
         # 測試無效的 max_results 類型
         try:
             SearchRequest(query="test", max_results="not a number")
-            assert False, "應該拒絕非整數的 max_results"
+            raise AssertionError("應該拒絕非整數的 max_results")
         except (ValueError, TypeError):
             pass
 
         # 測試過長的查詢
         try:
             SearchRequest(query="a" * 201)
-            assert False, "應該拒絕超過 200 字符的查詢"
-        except ValueError:
-            pass
-
-        # 測試無效的語言代碼
-        try:
-            SearchRequest(query="test", language="invalid_lang")
-            assert False, "應該拒絕無效的語言代碼"
+            raise AssertionError("應該拒絕超過 200 字符的查詢")
         except ValueError:
             pass

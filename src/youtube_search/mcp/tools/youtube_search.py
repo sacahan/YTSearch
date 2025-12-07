@@ -258,8 +258,7 @@ class YouTubeSearchTool:
 
                 # 調用搜尋服務（複用現有的 SearchService）
                 result = await asyncio.wait_for(
-                    asyncio.to_thread.run_sync(
-                        self.search_service.search,
+                    self.search_service.search(
                         keyword,
                         limit,
                         sort_by,

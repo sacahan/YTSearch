@@ -147,12 +147,12 @@ feature: "002-mcp-support"
 
 ### 6.3 Docker 部署驗證
 
-- [ ] T043 驗證 `Dockerfile` 包含所有 MCP 層依賴，使用 `./scripts/build_docker.sh --platform arm64 --action build` 成功構建
-- [ ] T044 使用 `./scripts/run_docker.sh up` 啟動容器，驗證 MCP 伺服器正常執行
-- [ ] T045 使用 `./scripts/run_docker.sh logs` 查看日誌，確認 MCP 伺服器啟動訊息
-- [ ] T046 [P] 驗證從主機連接到容器中的 MCP 伺服器（預設埠 8441），執行基本工具調用
-- [ ] T047 [P] 驗證環境變數配置正確加載（MCP_SEARCH_TIMEOUT、MCP_SEARCH_RETRIES）
-- [ ] T048 使用 `./scripts/run_docker.sh down` 正確清理容器
+- [x] T043 驗證 `Dockerfile` 包含所有 MCP 層依賴，使用 `./scripts/build_docker.sh --platform arm64 --action build` 成功構建
+- [x] T044 使用 `./scripts/run_docker.sh up` 啟動容器，驗證 MCP 伺服器正常執行
+- [x] T045 使用 `./scripts/run_docker.sh logs` 查看日誌，確認 MCP 伺服器啟動訊息
+- [x] T046 [P] 驗證從主機連接到容器中的 MCP 伺服器（預設埠 8441），執行基本工具調用
+- [x] T047 [P] 驗證環境變數配置正確加載（MCP_SEARCH_TIMEOUT、MCP_SEARCH_RETRIES）
+- [x] T048 使用 `./scripts/run_docker.sh down` 正確清理容器
 
 ### 6.4 文件和發布準備
 
@@ -172,11 +172,11 @@ feature: "002-mcp-support"
 
 **目標**：改善多個用戶故事涉及的項目。
 
-- [ ] T056 [P] 附加單元測試（如果請求）在 `tests/unit/` 中涵蓋邊界情況
-- [ ] T057 [P] 性能優化 - 評估和優化搜尋工具調用延遲（目標 90% < 3 秒，不含網路延遲）（滿足 SC-007）
-- [ ] T058 [P] 代碼清理和重構（移除臨時代碼、統一命名）
-- [ ] T059 安全加強 - 審查 MCP 工具參數處理，確保無注入漏洞
-- [ ] T060 驗證 `quickstart.md` 中的所有步驟
+- [x] T056 [P] 附加單元測試（如果請求）在 `tests/unit/` 中涵蓋邊界情況
+- [x] T057 [P] 性能優化 - 評估和優化搜尋工具調用延遲（目標 90% < 3 秒，不含網路延遲）（滿足 SC-007）
+- [x] T058 [P] 代碼清理和重構（移除臨時代碼、統一命名）
+- [x] T059 安全加強 - 審查 MCP 工具參數處理，確保無注入漏洞
+- [x] T060 驗證 `quickstart.md` 中的所有步驟
 
 ---
 

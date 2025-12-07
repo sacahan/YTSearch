@@ -28,7 +28,10 @@ def test_list_tools():
     """測試工具列表查詢功能（T012）"""
     try:
         manager = get_mcp_server_manager()
-        tools = manager._handle_list_tools()
+        # 調用正確的方法名稱
+        import asyncio
+
+        tools = asyncio.run(manager._list_tools_handler())
 
         # 驗證返回的工具列表
         assert isinstance(tools, list)
@@ -48,7 +51,9 @@ def test_youtube_search_tool_metadata():
     """測試 youtube_search 工具的元數據（FR-011, FR-012）"""
     try:
         manager = get_mcp_server_manager()
-        tools = manager._handle_list_tools()
+        import asyncio
+
+        tools = asyncio.run(manager._list_tools_handler())
 
         # 找到 youtube_search 工具
         youtube_search_tool = None

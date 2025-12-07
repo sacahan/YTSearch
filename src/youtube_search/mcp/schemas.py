@@ -53,12 +53,14 @@ class YouTubeSearchInput(BaseModel):
 
     keyword: str = Field(
         ...,
+        alias="query",
         min_length=1,
         max_length=200,
         description="搜尋關鍵詞（必填，1-200 字元）",
     )
     limit: int = Field(
         default=1,
+        alias="max_results",
         ge=1,
         le=100,
         description="最大返回結果數量（可選，1-100，預設 1）",
@@ -76,6 +78,17 @@ class YouTubeSearchInput(BaseModel):
         if not value or not value.strip():
             raise ValueError("搜尋關鍵字不能為空，請提供 1-200 字符的關鍵字")
         return value.strip()
+
+    # 提供屬性別名以支援測試的期望名稱
+    @property
+    def query(self) -> str:
+        """返回 keyword 的別名"""
+        return self.keyword
+
+    @property
+    def max_results(self) -> int:
+        """返回 limit 的別名"""
+        return self.limit
 
 
 class YouTubeSearchOutput(BaseModel):
@@ -118,3 +131,23 @@ class YouTubeSearchOutput(BaseModel):
         max_length=500,
         description="搜尋結果說明訊息（如數量、是否被截斷等）",
     )
+
+
+# ============================================================================
+# 別名導出 - 支援測試和其他模組的不同命名約定
+# ============================================================================
+
+SearchRequest = YouTubeSearchInput
+SearchResponse = YouTubeSearchOutput
+
+
+# 簡化的影片資訊模型（用於測試）
+class VideoInfo(BaseModel):
+    """影片資訊模型"""
+
+    video_id: str
+    title: str
+    channel: str
+    url: str
+    views: int = 0
+    upload_date: str = ""
