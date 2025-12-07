@@ -93,12 +93,22 @@ class YouTubeSearchInput(BaseModel):
     # 提供屬性別名以支援向後兼容（用於測試和外部 API）
     @property
     def query(self) -> str:
-        """返回 keyword 的別名（向後兼容）"""
+        """
+        返回 keyword 的別名（向後兼容，唯讀）。
+        
+        注意：這是為了向後兼容而保留的唯讀屬性。
+        新代碼應該直接使用 `keyword` 欄位。
+        """
         return self.keyword
 
     @property
     def max_results(self) -> int:
-        """返回 limit 的別名（向後兼容）"""
+        """
+        返回 limit 的別名（向後兼容，唯讀）。
+        
+        注意：這是為了向後兼容而保留的唯讀屬性。
+        新代碼應該直接使用 `limit` 欄位。
+        """
         return self.limit
 
 
