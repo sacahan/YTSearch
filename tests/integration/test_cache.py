@@ -93,8 +93,12 @@ def test_playlist_cache_hit_with_mock_redis():
     assert cached.tracks[0].title == "Never Gonna Give You Up"
 
 
-def test_playlist_partial_should_not_cache():
-    """Verify partial playlists are never cached (T023 smoke test for partial logic)."""
+def test_cache_disabled_returns_none_for_partial_playlist():
+    """Verify cache returns None when Redis is disabled (even for partial playlists).
+    
+    Note: The actual logic to skip caching partial playlists is implemented in
+    PlaylistService.get_playlist_metadata() (lines 100-110), not in the cache service.
+    """
     cache = CacheService(redis_client=None)
 
     partial_playlist = Playlist(
@@ -106,10 +110,10 @@ def test_playlist_partial_should_not_cache():
         tracks=[],
     )
 
-    # Attempt to cache partial playlist (should be skipped in service)
+    # Attempt to cache partial playlist
     cache.set("playlist:PLtest9999", partial_playlist)
 
-    # Verify cache returns None (no Redis available)
+    # Verify cache returns None (Redis is disabled)
     result = cache.get("playlist:PLtest9999")
     assert result is None
 

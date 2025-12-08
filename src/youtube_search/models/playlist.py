@@ -115,9 +115,3 @@ class Playlist(BaseModel):
         if self.video_count is None:
             self.video_count = len(self.tracks)
         return self
-
-    @classmethod
-    def build_timestamp(cls) -> str:
-        """Build ISO 8601 UTC timestamp with second precision."""
-
-        return _iso_timestamp()

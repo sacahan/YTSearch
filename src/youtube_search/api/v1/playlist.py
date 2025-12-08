@@ -128,10 +128,7 @@ async def get_playlist_metadata(
 ) -> Playlist:
     """Handle GET /api/v1/playlist/metadata requests.
 
-    For MVP (US1):
-    - Validates playlist URL and extracts playlist_id
-    - Returns basic metadata: playlist_id, title (if available), video_count
-    - Does NOT fetch individual tracks (deferred to US2)
+    Retrieves complete playlist metadata including all tracks by scraping YouTube.
 
     Args:
         playlist_url: YouTube playlist URL containing list parameter
@@ -139,7 +136,7 @@ async def get_playlist_metadata(
         service: PlaylistService dependency
 
     Returns:
-        Playlist model with basic metadata
+        Playlist model with complete metadata and all tracks
 
     Error Responses:
         400: Invalid URL format (missing list parameter, invalid domain)

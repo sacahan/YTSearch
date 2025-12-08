@@ -20,10 +20,9 @@ logger = get_logger(__name__)
 
 
 class PlaylistService:
-    """Orchestrates playlist operations: URL parsing, validation, scraping, and metadata retrieval.
+    """Orchestrates playlist operations: URL parsing, validation, scraping, and retrieval of full playlist metadata including all tracks.
 
-    For US1 (MVP): Returns basic metadata without tracks.
-    For US2+: Fetches full track list via scraper and normalizer.
+    This service validates playlist URLs, scrapes playlist data, normalizes track metadata, and returns a Playlist model containing complete metadata and all tracks.
     """
 
     def __init__(
