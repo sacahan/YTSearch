@@ -201,8 +201,10 @@ class PlaylistScraper:
                     match = re.search(r"(\d+)\s+video", subtitle)
                     if match:
                         result["video_count"] = int(match.group(1))
-        except (KeyError, ValueError, AttributeError):
-            pass
+        except (KeyError, ValueError, AttributeError) as exc:
+            # Some playlist pages may lack subtitle or have unexpected structure.
+            # Log and continue, returning partial metadata if possible.
+            logger.debug(f"Error extracting playlist header metadata: {exc}")
 
         return result
 
@@ -385,8 +387,10 @@ class PlaylistScraper:
                                         .get("continuation")
                                     )
                 return None
-        except (KeyError, IndexError, TypeError):
-            pass
+        except (KeyError, IndexError, TypeError) as exc:
+            # We expect occasional KeyError/IndexError/TypeError due to dynamic YouTube response formats.
+            # These indicate missing or unexpected data structure; treat as "no continuation token found".
+            logger.debug("Failed to extract continuation token: %r", exc)
 
         return None
 
@@ -454,8 +458,13 @@ class PlaylistScraper:
                         )
                         if browse_id:
                             return f"https://www.youtube.com/channel/{browse_id}"
-        except (KeyError, TypeError):
-            pass
+        except (KeyError, TypeError) as exc:
+            # Expected if the navigationEndpoint or browseId is missing or malformed.
+            logger.debug(
+                "Failed to extract channel URL from object: %r (exception: %r)",
+                obj,
+                exc,
+            )
         return None
 
     def _extract_publish_date(self, obj: Any) -> Optional[str]:
@@ -468,6 +477,7 @@ class PlaylistScraper:
             if isinstance(obj, dict):
                 return obj.get("durationSeconds") or obj.get("lengthSeconds")
         except (KeyError, TypeError):
+            # Duration field may be missing or malformed; return None if not found.
             pass
         return None
 
@@ -487,8 +497,11 @@ class PlaylistScraper:
                             return int(float(count_str) * 1_000)
                         else:
                             return int(float(count_str))
-        except (KeyError, ValueError, TypeError):
-            pass
+        except (KeyError, ValueError, TypeError) as e:
+            # Silently ignore parsing errors, but log for debugging and data quality monitoring.
+            logger.debug(
+                "Failed to extract view count from object: %r (error: %s)", obj, e
+            )
         return None
 
 

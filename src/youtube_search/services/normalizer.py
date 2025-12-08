@@ -48,28 +48,22 @@ class MetadataNormalizer:
         """Apply normalization rules to a Track instance.
 
         Ensures all fields conform to schema constraints and removes invalid data.
+        
+        Raises:
+            ValueError: If video_id format is invalid (Pydantic will enforce this)
         """
         # Clean text fields
         normalized_title = MetadataNormalizer._clean_text(track.title, max_length=500)
         normalized_channel = MetadataNormalizer._clean_text(track.channel, max_length=200)
 
-        # Validate video_id format (should be 11 chars alphanumeric + hyphen/underscore)
-        video_id = track.video_id
-        if not re.match(r"^[a-zA-Z0-9_-]{11}$", video_id):
-            logger.warning(
-                f"Invalid video_id format: {video_id}",
-                extra={"title": track.title},
-            )
-            return track  # Return as-is if validation fails
-
-        # Reconstruct URL if needed
-        url = track.url or Track.build_url(video_id)
+        # Reconstruct URL if needed (video_id validation is handled by Pydantic)
+        url = track.url or Track.build_url(track.video_id)
 
         # Keep publish_date and duration as-is (preserve original format from YouTube)
         # These are often relative times that should not be normalized
 
         return Track(
-            video_id=video_id,
+            video_id=track.video_id,
             title=normalized_title or track.title,  # Fallback to original if empty after cleaning
             channel=normalized_channel,
             channel_url=track.channel_url,
