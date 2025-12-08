@@ -207,35 +207,59 @@ class PlaylistScraper:
         return result
 
     def _extract_tracks_from_data(self, data: dict[str, Any]) -> list[Track]:
-        """Extract track list from ytInitialData."""
+        """Extract track list from ytInitialData.
+
+        Supports both:
+        - Playlist pages: /playlist?list=XXX → twoColumnBrowseResultsRenderer
+        - Watch pages with playlist: /watch?v=XXX&list=XXX → twoColumnWatchNextResults
+        """
         tracks: list[Track] = []
         position = 0
 
         try:
-            # Navigate to playlist video list
-            tabs = (
-                data.get("contents", {}).get("twoColumnBrowseResultsRenderer", {}).get("tabs", [])
-            )
-            for tab in tabs:
-                if "tabRenderer" in tab:
-                    contents = (
-                        tab["tabRenderer"]
-                        .get("content", {})
-                        .get("sectionListRenderer", {})
-                        .get("contents", [])
-                    )
-                    for section in contents:
-                        if "itemSectionRenderer" in section:
-                            renderers = section["itemSectionRenderer"].get("contents", [])
-                            for renderer in renderers:
-                                if "playlistVideoRenderer" in renderer:
-                                    position += 1
-                                    track = self._parse_playlist_video_renderer(
-                                        renderer["playlistVideoRenderer"],
-                                        position,
-                                    )
-                                    if track:
-                                        tracks.append(track)
+            contents = data.get("contents", {})
+
+            # Try watch format first (when user provides watch URL with list param)
+            watch_results = contents.get("twoColumnWatchNextResults", {})
+            if watch_results:
+                playlist = watch_results.get("playlist", {}).get("playlist", {})
+                if playlist:
+                    playlist_contents = playlist.get("contents", [])
+                    for item in playlist_contents:
+                        if "playlistPanelVideoRenderer" in item:
+                            position += 1
+                            track = self._parse_playlist_panel_video_renderer(
+                                item["playlistPanelVideoRenderer"],
+                                position,
+                            )
+                            if track:
+                                tracks.append(track)
+                    return tracks
+
+            # Try playlist format (twoColumnBrowseResultsRenderer)
+            browse_results = contents.get("twoColumnBrowseResultsRenderer", {})
+            if browse_results:
+                tabs = browse_results.get("tabs", [])
+                for tab in tabs:
+                    if "tabRenderer" in tab:
+                        contents_inner = (
+                            tab["tabRenderer"]
+                            .get("content", {})
+                            .get("sectionListRenderer", {})
+                            .get("contents", [])
+                        )
+                        for section in contents_inner:
+                            if "itemSectionRenderer" in section:
+                                renderers = section["itemSectionRenderer"].get("contents", [])
+                                for renderer in renderers:
+                                    if "playlistVideoRenderer" in renderer:
+                                        position += 1
+                                        track = self._parse_playlist_video_renderer(
+                                            renderer["playlistVideoRenderer"],
+                                            position,
+                                        )
+                                        if track:
+                                            tracks.append(track)
         except (KeyError, IndexError, TypeError) as exc:
             logger.warning(f"Error parsing playlist video renderers: {str(exc)}")
 
@@ -275,30 +299,92 @@ class PlaylistScraper:
             logger.debug(f"Failed to parse renderer: {str(exc)}")
             return None
 
-    def _extract_continuation_token(self, data: dict[str, Any]) -> Optional[str]:
-        """Extract continuation token from ytInitialData or continuation response."""
+    def _parse_playlist_panel_video_renderer(
+        self, renderer: dict[str, Any], position: int
+    ) -> Optional[Track]:
+        """Parse a playlistPanelVideoRenderer to extract Track metadata.
+
+        Used when parsing watch page playlists (/watch?v=XXX&list=XXX).
+        Has different structure than playlistVideoRenderer.
+        """
         try:
-            # Check for continuation in tabs
-            tabs = (
-                data.get("contents", {}).get("twoColumnBrowseResultsRenderer", {}).get("tabs", [])
+            video_id = renderer.get("videoId")
+            if not video_id:
+                return None
+
+            title = self._get_text(renderer.get("title"))
+            if not title:
+                return None
+
+            # In panel format, use longBylineText instead of shortBylineText
+            channel = self._get_text(renderer.get("longBylineText"))
+            channel_url = self._extract_channel_url(renderer.get("longBylineText"))
+
+            # Extract duration from lengthText (e.g., "3:45")
+            duration = self._get_text(renderer.get("lengthText"))
+
+            # Panel format doesn't have publish_date or view_count readily available
+            publish_date = None
+            view_count = None
+
+            return Track(
+                video_id=video_id,
+                title=title,
+                channel=channel,
+                channel_url=channel_url,
+                url=Track.build_url(video_id),
+                publish_date=publish_date,
+                duration=duration,
+                view_count=view_count,
+                position=position,
             )
-            for tab in tabs:
-                if "tabRenderer" in tab:
-                    contents = (
-                        tab["tabRenderer"]
-                        .get("content", {})
-                        .get("sectionListRenderer", {})
-                        .get("contents", [])
-                    )
-                    for section in contents:
-                        if "itemSectionRenderer" in section:
-                            continuation = section["itemSectionRenderer"].get("continuations", [])
-                            if continuation:
-                                return (
-                                    continuation[0]
-                                    .get("nextContinuationData", {})
-                                    .get("continuation")
+        except (KeyError, ValueError) as exc:
+            logger.debug(f"Failed to parse panel renderer: {str(exc)}")
+            return None
+
+    def _extract_continuation_token(self, data: dict[str, Any]) -> Optional[str]:
+        """Extract continuation token from ytInitialData or continuation response.
+
+        Supports both:
+        - Playlist format: twoColumnBrowseResultsRenderer
+        - Watch format: twoColumnWatchNextResults
+        """
+        try:
+            contents = data.get("contents", {})
+
+            # Try watch format first (when parsing watch page with playlist)
+            watch_results = contents.get("twoColumnWatchNextResults", {})
+            if watch_results:
+                playlist = watch_results.get("playlist", {}).get("playlist", {})
+                continuations = playlist.get("continuations", [])
+                if continuations:
+                    return continuations[0].get("nextContinuationData", {}).get("continuation")
+                return None
+
+            # Try playlist format (twoColumnBrowseResultsRenderer)
+            browse_results = contents.get("twoColumnBrowseResultsRenderer", {})
+            if browse_results:
+                tabs = browse_results.get("tabs", [])
+                for tab in tabs:
+                    if "tabRenderer" in tab:
+                        contents_inner = (
+                            tab["tabRenderer"]
+                            .get("content", {})
+                            .get("sectionListRenderer", {})
+                            .get("contents", [])
+                        )
+                        for section in contents_inner:
+                            if "itemSectionRenderer" in section:
+                                continuation = section["itemSectionRenderer"].get(
+                                    "continuations", []
                                 )
+                                if continuation:
+                                    return (
+                                        continuation[0]
+                                        .get("nextContinuationData", {})
+                                        .get("continuation")
+                                    )
+                return None
         except (KeyError, IndexError, TypeError):
             pass
 

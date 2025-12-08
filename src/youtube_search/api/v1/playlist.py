@@ -20,6 +20,104 @@ router = APIRouter(prefix="/api/v1", tags=["playlist"])
     response_model=Playlist,
     summary="取得播放列表元數據",
     response_model_exclude_none=True,
+    responses={
+        200: {
+            "description": "成功返回播放列表元數據",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "playlist_id": "PLtest123",
+                        "url": "https://www.youtube.com/playlist?list=PLtest123",
+                        "title": "Learning Python",
+                        "video_count": 50,
+                        "partial": False,
+                        "fetched_at": "2025-12-08T10:30:45Z",
+                        "tracks": [
+                            {
+                                "video_id": "dQw4w9WgXcQ",
+                                "title": "Python Basics",
+                                "channel": "Tech Academy",
+                                "channel_url": "https://www.youtube.com/channel/UCxxxxx",
+                                "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                                "publish_date": "2 years ago",
+                                "duration": "45:30",
+                                "view_count": 1000000,
+                                "position": 1,
+                            }
+                        ],
+                    }
+                }
+            },
+        },
+        400: {
+            "description": "無效的播放列表 URL 或缺少必要參數",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "code": "INVALID_PARAMETER",
+                        "message": "playlist_url 缺少 list 參數",
+                        "reason": None,
+                        "trace_id": "550e8400-e29b-41d4-a716-446655440000",
+                        "playlist_id": None,
+                        "status": 400,
+                    }
+                }
+            },
+        },
+        403: {
+            "description": "播放列表私密或無法存取",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "code": "PLAYLIST_FORBIDDEN",
+                        "message": "播放列表私密或無法存取",
+                        "trace_id": "550e8400-e29b-41d4-a716-446655440001",
+                        "status": 403,
+                    }
+                }
+            },
+        },
+        404: {
+            "description": "播放列表不存在",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "code": "PLAYLIST_NOT_FOUND",
+                        "message": "播放列表不存在",
+                        "trace_id": "550e8400-e29b-41d4-a716-446655440002",
+                        "status": 404,
+                    }
+                }
+            },
+        },
+        410: {
+            "description": "播放列表已刪除",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "code": "PLAYLIST_GONE",
+                        "message": "播放列表已刪除",
+                        "trace_id": "550e8400-e29b-41d4-a716-446655440003",
+                        "status": 410,
+                    }
+                }
+            },
+        },
+        502: {
+            "description": "無法從 YouTube 提取播放列表資料",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "code": "PLAYLIST_SCRAPING_ERROR",
+                        "message": "無法從 YouTube 提取播放列表資料",
+                        "reason": "ytInitialData 提取失敗",
+                        "trace_id": "550e8400-e29b-41d4-a716-446655440004",
+                        "status": 502,
+                    }
+                }
+            },
+        },
+    },
 )
 async def get_playlist_metadata(
     playlist_url: str = Query(
