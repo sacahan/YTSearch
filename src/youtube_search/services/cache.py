@@ -1,18 +1,21 @@
-"""Redis caching layer for search results."""
+"""Redis caching layer for search results and playlists."""
 
 from __future__ import annotations
 
 import hashlib
 import json
-from typing import Optional
+from typing import Optional, Type, TypeVar, Union
 
 import redis
+from pydantic import BaseModel
 
 from youtube_search.config import get_settings
 from youtube_search.models.search import SearchResult
 from youtube_search.utils.logger import get_logger
 
 logger = get_logger(__name__)
+
+T = TypeVar("T", bound=BaseModel)
 
 
 class CacheService:
@@ -85,11 +88,24 @@ class CacheService:
             self.client = None
         self.ttl = settings.redis_ttl_seconds
 
-    def get(self, keyword: str) -> Optional[SearchResult]:
-        """Retrieve cached search result for keyword."""
+    def get(
+        self, keyword: str, model_class: Optional[Type[T]] = None
+    ) -> Optional[Union[SearchResult, T]]:
+        """Retrieve cached result for keyword.
+
+        Args:
+            keyword: Cache key (e.g. 'python', 'playlist:PLxxxxx')
+            model_class: Optional model class to deserialize into. Defaults to SearchResult.
+
+        Returns:
+            Deserialized model instance or None if not found/error.
+        """
 
         if not self.client:
             return None
+
+        if model_class is None:
+            model_class = SearchResult
 
         cache_key = self._generate_key(keyword)
         try:
@@ -97,13 +113,18 @@ class CacheService:
             if cached:
                 logger.debug("Cache hit", extra={"keyword": keyword})
                 data = json.loads(cached)
-                return SearchResult(**data)
+                return model_class(**data)
         except (redis.RedisError, json.JSONDecodeError) as exc:  # pragma: no cover
             logger.warning("Cache retrieval failed", extra={"error": str(exc)})
         return None
 
-    def set(self, keyword: str, result: SearchResult) -> None:
-        """Store search result in cache with TTL."""
+    def set(self, keyword: str, result: Union[SearchResult, BaseModel]) -> None:
+        """Store result in cache with TTL.
+
+        Args:
+            keyword: Cache key (e.g. 'python', 'playlist:PLxxxxx')
+            result: Model instance to serialize and cache.
+        """
 
         if not self.client:
             return

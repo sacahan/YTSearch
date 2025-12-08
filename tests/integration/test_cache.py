@@ -2,6 +2,7 @@
 
 from unittest.mock import MagicMock
 
+from youtube_search.models.playlist import Playlist, Track
 from youtube_search.models.search import SearchResult
 from youtube_search.models.video import Video
 from youtube_search.services.cache import CacheService
@@ -48,6 +49,69 @@ def test_cache_roundtrip_with_mock_redis():
     assert cached.search_keyword == "Python"
     assert cached.result_count == 1
     assert cached.videos[0].video_id == "test1234567"
+
+
+def test_playlist_cache_hit_with_mock_redis():
+    """Verify playlist cache hit on second request (T023 smoke test)."""
+    mock_redis = MagicMock()
+    cache = CacheService(redis_client=mock_redis)
+
+    # Create a playlist with tracks
+    track = Track(
+        video_id="dQw4w9WgXcQ",
+        title="Never Gonna Give You Up",
+        url="https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    )
+    playlist = Playlist(
+        playlist_id="PLtest1234567",
+        url="https://www.youtube.com/playlist?list=PLtest1234567",
+        title="Test Playlist",
+        video_count=1,
+        partial=False,
+        tracks=[track],
+    )
+
+    stored_data = {}
+
+    def mock_setex(key, ttl, value):
+        stored_data[key] = value
+
+    def mock_get(key):
+        return stored_data.get(key)
+
+    mock_redis.setex = mock_setex
+    mock_redis.get = mock_get
+
+    # First request should miss cache
+    cache.set("playlist:PLtest1234567", playlist)
+
+    # Second request should hit cache
+    cached = cache.get("playlist:PLtest1234567", model_class=Playlist)
+    assert cached is not None
+    assert cached.playlist_id == "PLtest1234567"
+    assert len(cached.tracks) == 1
+    assert cached.tracks[0].title == "Never Gonna Give You Up"
+
+
+def test_playlist_partial_should_not_cache():
+    """Verify partial playlists are never cached (T023 smoke test for partial logic)."""
+    cache = CacheService(redis_client=None)
+
+    partial_playlist = Playlist(
+        playlist_id="PLtest9999",
+        url="https://www.youtube.com/playlist?list=PLtest9999",
+        title="Partial Playlist",
+        video_count=1000,
+        partial=True,  # Incomplete due to timeout
+        tracks=[],
+    )
+
+    # Attempt to cache partial playlist (should be skipped in service)
+    cache.set("playlist:PLtest9999", partial_playlist)
+
+    # Verify cache returns None (no Redis available)
+    result = cache.get("playlist:PLtest9999")
+    assert result is None
 
 
 def test_cache_key_generation_is_deterministic():

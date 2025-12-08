@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from fastapi import FastAPI
 
+from youtube_search.api.v1.playlist import router as playlist_router
 from youtube_search.api.v1.search import router as search_router
 from youtube_search.mcp.router import router as mcp_router
 from youtube_search.services.cache import get_cache_service
@@ -14,6 +15,7 @@ logger = get_logger(__name__)
 
 app = FastAPI(title="YouTube 搜尋 API", version="1.0.0")
 app.include_router(search_router)
+app.include_router(playlist_router)
 app.include_router(mcp_router)
 
 

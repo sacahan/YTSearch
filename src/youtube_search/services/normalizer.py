@@ -6,6 +6,7 @@ import re
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
+from youtube_search.models.playlist import Track
 from youtube_search.models.video import Video
 from youtube_search.utils.logger import get_logger
 
@@ -40,6 +41,43 @@ class MetadataNormalizer:
             publish_date=normalized_date,
             view_count=video.view_count,
             description=normalized_description,
+        )
+
+    @staticmethod
+    def normalize_track(track: Track) -> Track:
+        """Apply normalization rules to a Track instance.
+
+        Ensures all fields conform to schema constraints and removes invalid data.
+        """
+        # Clean text fields
+        normalized_title = MetadataNormalizer._clean_text(track.title, max_length=500)
+        normalized_channel = MetadataNormalizer._clean_text(track.channel, max_length=200)
+
+        # Validate video_id format (should be 11 chars alphanumeric + hyphen/underscore)
+        video_id = track.video_id
+        if not re.match(r"^[a-zA-Z0-9_-]{11}$", video_id):
+            logger.warning(
+                f"Invalid video_id format: {video_id}",
+                extra={"title": track.title},
+            )
+            return track  # Return as-is if validation fails
+
+        # Reconstruct URL if needed
+        url = track.url or Track.build_url(video_id)
+
+        # Keep publish_date and duration as-is (preserve original format from YouTube)
+        # These are often relative times that should not be normalized
+
+        return Track(
+            video_id=video_id,
+            title=normalized_title or track.title,  # Fallback to original if empty after cleaning
+            channel=normalized_channel,
+            channel_url=track.channel_url,
+            url=url,
+            publish_date=track.publish_date,
+            duration=track.duration,
+            view_count=track.view_count,
+            position=track.position,
         )
 
     @staticmethod
