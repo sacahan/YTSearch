@@ -53,7 +53,7 @@ class TestDownloadAudioBasic:
     def test_download_audio_with_stream_format(self, client):
         """測試使用 stream 格式。"""
         # 首先下載為 link 格式建立快取
-        response = client.post("/api/v1/download/audio?video_id=dQw4w9WgXcQ&format=link")
+        client.post("/api/v1/download/audio?video_id=dQw4w9WgXcQ&format=link")
 
         # 然後嘗試以 stream 格式下載
         response = client.post("/api/v1/download/audio?video_id=dQw4w9WgXcQ&format=stream")
