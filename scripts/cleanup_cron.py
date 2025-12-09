@@ -78,7 +78,8 @@ async def main() -> int:
         )
 
         # 執行清理任務
-        result = await cleanup_service.cleanup_task()  # noqa: F841
+        result = await cleanup_service.cleanup_task()
+        logger.info(f"清理任務結果: {result!r}")
 
         # 獲取清理後的統計
         stats_after = cleanup_service.get_directory_stats()
