@@ -159,3 +159,102 @@ class CacheUnavailableError(AppError):
 class InternalServerError(AppError):
     def __init__(self, message: str = "內部服務錯誤") -> None:
         super().__init__(message, "INTERNAL_ERROR", HTTPStatus.INTERNAL_SERVER_ERROR)
+
+
+# Audio Download Feature (Feature 004) - Custom Exceptions
+class VideoNotFoundError(AppError):
+    """影片不存在或已刪除（404）。"""
+
+    def __init__(
+        self,
+        message: str = "影片不存在或已刪除",
+        video_id: Optional[str] = None,
+        reason: Optional[str] = None,
+    ) -> None:
+        super().__init__(
+            message,
+            "VIDEO_NOT_FOUND",
+            HTTPStatus.NOT_FOUND,
+            reason=reason,
+        )
+        self.video_id = video_id
+
+
+class DurationExceededError(AppError):
+    """影片長度超過限制（403）。"""
+
+    def __init__(
+        self,
+        message: str = "影片長度超過允許限制",
+        video_id: Optional[str] = None,
+        video_duration: Optional[int] = None,
+        max_duration: Optional[int] = None,
+        reason: Optional[str] = None,
+    ) -> None:
+        details = (
+            f"（影片長度: {video_duration}秒, 限制: {max_duration}秒）"
+            if video_duration and max_duration
+            else ""
+        )
+        full_message = f"{message}{details}"
+        super().__init__(
+            full_message,
+            "DURATION_EXCEEDED",
+            HTTPStatus.FORBIDDEN,
+            reason=reason,
+        )
+        self.video_id = video_id
+        self.video_duration = video_duration
+        self.max_duration = max_duration
+
+
+class LiveStreamError(AppError):
+    """不支援直播串流（403）。"""
+
+    def __init__(
+        self,
+        message: str = "不支援直播串流下載",
+        video_id: Optional[str] = None,
+        reason: Optional[str] = None,
+    ) -> None:
+        super().__init__(
+            message,
+            "LIVE_STREAM_NOT_SUPPORTED",
+            HTTPStatus.FORBIDDEN,
+            reason=reason,
+        )
+        self.video_id = video_id
+
+
+class DownloadFailedError(AppError):
+    """下載失敗（503）- 包括版權限制、年齡限制、地區限制等。"""
+
+    def __init__(
+        self,
+        message: str = "影片下載失敗",
+        video_id: Optional[str] = None,
+        reason: Optional[str] = None,
+    ) -> None:
+        super().__init__(
+            message,
+            "DOWNLOAD_FAILED",
+            HTTPStatus.SERVICE_UNAVAILABLE,
+            reason=reason,
+        )
+        self.video_id = video_id
+
+
+class StorageFullError(AppError):
+    """儲存空間不足（507）。"""
+
+    def __init__(
+        self,
+        message: str = "伺服器儲存空間不足",
+        reason: Optional[str] = None,
+    ) -> None:
+        super().__init__(
+            message,
+            "STORAGE_FULL",
+            HTTPStatus.INSUFFICIENT_STORAGE,
+            reason=reason,
+        )

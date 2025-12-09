@@ -104,6 +104,56 @@ class Settings(BaseSettings):
         description="Enable structured logging output.",
     )
 
+    # Audio Download Feature (Feature 004) Configuration
+    download_dir: str = Field(
+        default="/tmp/youtube_audio",
+        description="Directory path for storing downloaded audio files.",
+    )
+    download_base_url: str = Field(
+        default="http://localhost:8000/downloads",
+        description="Base URL for serving downloaded audio files.",
+    )
+    download_timeout: int = Field(
+        default=300,
+        ge=30,
+        le=900,
+        description="Download timeout in seconds (yt-dlp operation timeout).",
+    )
+    max_video_duration: int = Field(
+        default=600,
+        ge=60,
+        le=3600,
+        description="Maximum allowed video duration in seconds (10 minutes default).",
+    )
+    audio_bitrate: int = Field(
+        default=128,
+        ge=64,
+        le=320,
+        description="Audio bitrate in kbps for MP3 encoding.",
+    )
+    cache_ttl_hours: int = Field(
+        default=24,
+        ge=1,
+        le=168,
+        description="Cache TTL in hours for downloaded audio files.",
+    )
+    rate_limit_download_per_hour: int = Field(
+        default=20,
+        ge=1,
+        le=1000,
+        description="Rate limit: maximum downloads per hour per IP.",
+    )
+    rate_limit_static_per_minute: int = Field(
+        default=60,
+        ge=10,
+        le=600,
+        description="Rate limit: maximum static file serves per minute per IP.",
+    )
+    rate_limit_enabled: bool = Field(
+        default=True,
+        description="Enable rate limiting for download endpoints.",
+    )
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:

@@ -14,6 +14,7 @@ dist/
 *.egg-info/
 .installed.cfg
 *.egg
+output/
 
 # Virtual environments / env files
 .env

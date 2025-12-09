@@ -164,6 +164,45 @@ def configure_logging(level: Optional[str] = None) -> None:
     root_logger.setLevel(effective_level)
 
 
+# Audio Download Feature (Feature 004) - Download-specific logging utilities
+class DownloadLogFormatter(logging.Formatter):
+    """音檔下載特定日誌格式化器。"""
+
+    DOWNLOAD_FORMAT = "%(asctime)s [%(levelname)-8s] [下載] %(message)s [%(filename)s:%(lineno)d]"
+
+    def __init__(self):
+        """初始化下載日誌格式化器。"""
+        super().__init__(self.DOWNLOAD_FORMAT, DATE_FORMAT)
+
+    def format(self, record: logging.LogRecord) -> str:
+        """格式化下載日誌記錄。"""
+        return super().format(record)
+
+
+def get_download_logger(name: str) -> logging.Logger:
+    """
+    取得下載模組專用的記錄器。
+
+    Args:
+        name: 記錄器名稱
+
+    Returns:
+        logging.Logger: 配置好的記錄器
+    """
+    logger = logging.getLogger(name)
+
+    # 若記錄器已有處理器，直接返回
+    if logger.handlers:
+        return logger
+
+    # 建立下載特定的處理器
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(DownloadLogFormatter())
+    logger.addHandler(console_handler)
+
+    return logger
+
+
 def get_logger(name: str) -> logging.Logger:
     """Return module logger ensuring base configuration exists."""
 
