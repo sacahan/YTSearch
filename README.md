@@ -52,6 +52,130 @@ curl "http://localhost:8000/api/v1/search?keyword=Python&limit=5"
 curl "http://localhost:8000/api/v1/search?keyword=Python&sort_by=date&limit=3"
 ```
 
+## Audio Download Feature
+
+Download YouTube videos as MP3 audio files with automatic caching and cleanup.
+
+### Download Features
+
+- ✅ Download YouTube videos as 128kbps MP3 files
+- ✅ Support for single and batch downloads
+- ✅ Redis-based caching to avoid duplicate downloads
+- ✅ Automatic cleanup of expired files (24-hour TTL)
+- ✅ Rate limiting: 20 downloads per IP per hour
+- ✅ Video duration limit: maximum 10 minutes
+- ✅ Direct streaming or download link format
+
+### Download API Examples
+
+#### Single Video Download (Link Format)
+
+```bash
+# Get download link
+curl -X POST "http://localhost:8000/api/v1/download/audio?video_id=dQw4w9WgXcQ&format=link"
+
+# Response
+{
+  "video_id": "dQw4w9WgXcQ",
+  "title": "Rick Astley - Never Gonna Give You Up",
+  "duration": 212,
+  "download_url": "http://localhost:8000/downloads/dQw4w9WgXcQ_Rick_Astley.mp3",
+  "cached": false,
+  "file_size": 3400000
+}
+```
+
+#### Single Video Download (Stream Format)
+
+```bash
+# Direct MP3 stream - returns binary audio data
+curl -X POST "http://localhost:8000/api/v1/download/audio?video_id=dQw4w9WgXcQ&format=stream" -o output.mp3
+```
+
+#### Batch Download
+
+```bash
+# Download multiple videos at once (max 20)
+curl -X POST "http://localhost:8000/api/v1/download/batch" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "video_ids": ["dQw4w9WgXcQ", "jNQXAC9IVRw"]
+  }'
+
+# Response
+{
+  "total": 2,
+  "successful": 1,
+  "failed": 1,
+  "items": [
+    {
+      "video_id": "dQw4w9WgXcQ",
+      "status": "success",
+      "download_url": "http://localhost:8000/downloads/...",
+      "duration": 212,
+      "cached": false
+    },
+    {
+      "video_id": "jNQXAC9IVRw",
+      "status": "failed",
+      "error_message": "Video duration exceeds limit"
+    }
+  ]
+}
+```
+
+### Configuration
+
+Set these environment variables to customize download behavior:
+
+```bash
+# Download storage directory
+DOWNLOAD_DIR=/tmp/youtube_audio
+
+# Base URL for serving downloads (used in download links)
+DOWNLOAD_BASE_URL=http://localhost:8000/downloads
+
+# Download timeout in seconds
+DOWNLOAD_TIMEOUT=300
+
+# Maximum video duration in seconds (default: 600 = 10 minutes)
+MAX_VIDEO_DURATION=600
+
+# Audio bitrate in kbps
+AUDIO_BITRATE=128
+
+# Cache TTL in hours
+CACHE_TTL_HOURS=24
+
+# Rate limit: downloads per IP per hour
+RATE_LIMIT_DOWNLOAD_PER_HOUR=20
+
+# Enable rate limiting
+RATE_LIMIT_ENABLED=true
+```
+
+### Error Handling
+
+The API returns appropriate HTTP status codes:
+
+- `400` - Invalid video ID or parameters
+- `403` - Video too long, live stream, or access restricted
+- `404` - Video not found or deleted
+- `503` - Download failed or YouTube unavailable
+- `507` - Server storage full
+
+### Cleanup
+
+Expired audio files are automatically deleted after 24 hours. Manual cleanup can be triggered:
+
+```bash
+# Manual cleanup script
+python scripts/cleanup_cron.py
+
+# Schedule with cron (daily at 2 AM)
+0 2 * * * /usr/bin/python /path/to/scripts/cleanup_cron.py >> /path/to/logs/cleanup.log 2>&1
+```
+
 ## MCP Integration (Model Context Protocol)
 
 This service provides MCP server functionality, allowing AI assistants (such as Claude Desktop) to directly invoke YouTube search tools via the MCP protocol.
@@ -169,7 +293,7 @@ pytest tests/
 
 ## Project Structure
 
-```
+```text
 src/youtube_search/
 ├── models/          # Pydantic data models
 ├── services/        # Business logic layer

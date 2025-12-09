@@ -94,3 +94,106 @@ def extract_playlist_id_from_url(playlist_url: Optional[str]) -> str:
         raise InvalidParameterError("playlist_url 缺少 list 參數", "PLAYLIST_ID_NOT_FOUND")
 
     return validate_playlist_id(playlist_id)
+
+
+# Audio Download Feature (Feature 004) - Download-related validators
+
+
+def validate_video_id(video_id: Optional[str]) -> str:
+    """
+    驗證 YouTube 影片 ID 格式。
+
+    Args:
+        video_id: YouTube 影片 ID
+
+    Returns:
+        str: 驗證後的影片 ID
+
+    Raises:
+        MissingParameterError: 影片 ID 缺失
+        InvalidParameterError: 影片 ID 格式無效
+    """
+    if video_id is None or video_id.strip() == "":
+        raise MissingParameterError("video_id 為必須參數")
+
+    value = video_id.strip()
+
+    # YouTube 影片 ID 為 11 個字元，由英數、連字符和底線組成
+    if not re.match(r"^[a-zA-Z0-9_-]{11}$", value):
+        raise InvalidParameterError(
+            "video_id 格式無效（應為 11 個英數字符），",
+            "INVALID_VIDEO_ID",
+        )
+
+    return value
+
+
+def validate_duration(duration: Optional[int], max_duration: int) -> bool:
+    """
+    驗證影片長度是否在允許範圍內。
+
+    Args:
+        duration: 影片長度（秒）
+        max_duration: 最大允許長度（秒）
+
+    Returns:
+        bool: 長度是否有效
+
+    Raises:
+        InvalidParameterError: 長度超過限制
+    """
+    if duration is None:
+        return True
+
+    if duration <= 0:
+        raise InvalidParameterError(
+            "影片長度必須大於 0",
+            "INVALID_DURATION",
+        )
+
+    if duration > max_duration:
+        raise InvalidParameterError(
+            f"影片長度超過限制（{duration}秒 > {max_duration}秒）",
+            "DURATION_EXCEEDED",
+        )
+
+    return True
+
+
+def sanitize_filename(filename: str) -> str:
+    """
+    清理檔名中的特殊字元。
+
+    移除不安全的文件系統字符，保留字母、數字、中文、連字符和底線。
+
+    Args:
+        filename: 原始檔名
+
+    Returns:
+        str: 清理後的檔名
+    """
+    # 移除特殊字元，保留字母、數字、中文、連字符和底線
+    filename = re.sub(r'[<>:"/\\|?*]', "", filename)
+    filename = re.sub(r"\s+", "_", filename)
+    # 移除首尾的點和連字符
+    filename = filename.strip(".-")
+    # 限制長度（檔案系統限制）
+    max_length = 200
+    return filename[:max_length]
+
+
+def generate_download_url(base_url: str, video_id: str, filename: str) -> str:
+    """
+    生成公開下載連結。
+
+    Args:
+        base_url: 基礎 URL（例如 http://localhost:8000/downloads）
+        video_id: 影片 ID
+        filename: 音檔檔名
+
+    Returns:
+        str: 完整下載連結
+    """
+    base_url = base_url.rstrip("/")
+    safe_filename = sanitize_filename(filename)
+    return f"{base_url}/{video_id}_{safe_filename}.mp3"
