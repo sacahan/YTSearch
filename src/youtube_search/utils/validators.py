@@ -188,12 +188,29 @@ def generate_download_url(base_url: str, video_id: str, filename: str) -> str:
 
     Args:
         base_url: 基礎 URL（例如 http://localhost:8000/downloads）
-        video_id: 影片 ID
-        filename: 音檔檔名
+        video_id: 影片 ID（可為空，用於 ZIP 檔案）
+        filename: 檔名（可包含副檔名如 .zip、.mp3）
 
     Returns:
         str: 完整下載連結
+
+    Examples:
+        - generate_download_url("http://localhost:8000/downloads", "abc123", "My Song.mp3")
+          -> "http://localhost:8000/downloads/abc123_My_Song.mp3"
+        - generate_download_url("http://localhost:8000/downloads", "", "batch_2023.zip")
+          -> "http://localhost:8000/downloads/batch_2023.zip"
     """
     base_url = base_url.rstrip("/")
     safe_filename = sanitize_filename(filename)
-    return f"{base_url}/{video_id}_{safe_filename}.mp3"
+
+    # 如果 video_id 為空，直接返回 URL
+    if not video_id:
+        return f"{base_url}/{safe_filename}"
+
+    # 檢查 filename 是否已包含副檔名
+    if "." in safe_filename:
+        # 已有副檔名，直接組合
+        return f"{base_url}/{video_id}_{safe_filename}"
+    else:
+        # 沒有副檔名，預設為 .mp3
+        return f"{base_url}/{video_id}_{safe_filename}.mp3"

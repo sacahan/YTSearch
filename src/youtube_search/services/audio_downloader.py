@@ -7,6 +7,8 @@ import json
 import logging
 import re
 import shutil
+import zipfile
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -333,3 +335,71 @@ class AudioDownloaderService:
                 logger.info(f"批次下載成功: {vid}")
 
         return result
+
+    async def batch_download_as_zip(
+        self,
+        video_ids: list[str],
+    ) -> tuple[Path, dict[str, tuple[bool, Optional[AudioFile], Optional[str]]]]:
+        """
+        並行下載多個影片並打包為 ZIP 檔案。
+
+        Args:
+            video_ids: YouTube 影片 ID 清單
+
+        Returns:
+            tuple: (zip_file_path, download_results)
+                - zip_file_path: ZIP 檔案的完整路徑
+                - download_results: {video_id: (success, AudioFile|None, error_message|None)}
+        """
+        logger.info(f"開始批次下載並打包: {len(video_ids)} 個影片")
+
+        # 執行批次下載
+        batch_results = await self.batch_download(video_ids)
+
+        # 收集成功下載的檔案
+        successful_files: list[Path] = []
+        for vid, (success, audio_file, _error_msg) in batch_results.items():
+            if success and audio_file:
+                file_path = Path(audio_file.file_path)
+                if file_path.exists():
+                    successful_files.append(file_path)
+
+        logger.info(f"成功下載 {len(successful_files)} 個檔案，開始打包")
+
+        # 建立 ZIP 檔案
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        zip_filename = f"youtube_batch_download_{timestamp}.zip"
+        zip_path = self.download_dir / zip_filename
+
+        try:
+            with zipfile.ZipFile(
+                zip_path,
+                "w",
+                zipfile.ZIP_DEFLATED,
+            ) as zip_file:
+                for file_path in successful_files:
+                    # 將檔案添加到 ZIP，使用原始檔名作為內部路徑
+                    zip_file.write(file_path, arcname=file_path.name)
+                    logger.debug(f"新增至 ZIP: {file_path.name}")
+
+            # 驗證 ZIP 檔案
+            if not zip_path.exists():
+                raise DownloadFailedError(
+                    message="ZIP 檔案建立失敗",
+                    reason="檔案不存在",
+                )
+
+            zip_size = zip_path.stat().st_size
+            logger.info(f"ZIP 檔案建立成功: {zip_path}, 大小: {zip_size} 字節")
+
+            return zip_path, batch_results
+
+        except Exception as e:
+            logger.error(f"建立 ZIP 檔案失敗: {str(e)}")
+            # 清理未完成的 ZIP 檔案
+            if zip_path.exists():
+                zip_path.unlink()
+            raise DownloadFailedError(
+                message="建立 ZIP 壓縮檔失敗",
+                reason=str(e),
+            )

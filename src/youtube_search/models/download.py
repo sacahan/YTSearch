@@ -106,7 +106,7 @@ class DownloadAudioResponse(BaseModel):
 
 
 class BatchDownloadItem(BaseModel):
-    """批次下載項目。"""
+    """批次下載項目（已廢棄，保留向後相容性）。"""
 
     video_id: str = Field(..., description="YouTube 影片 ID")
     status: str = Field(..., description="下載狀態 (success, failed)")
@@ -140,12 +140,21 @@ class BatchDownloadRequest(BaseModel):
 
 
 class BatchDownloadResponse(BaseModel):
-    """批次下載 API 回應。"""
+    """批次下載 API 回應（ZIP 壓縮檔）。"""
 
     total: int = Field(..., ge=0, description="請求總數")
-    successful: int = Field(..., ge=0, description="成功數量")
+    successful: int = Field(..., ge=0, description="成功下載數量")
     failed: int = Field(..., ge=0, description="失敗數量")
-    items: list[BatchDownloadItem] = Field(
+    zip_url: str = Field(
         ...,
-        description="各影片下載結果",
+        description="ZIP 壓縮檔下載連結（包含所有成功下載的音檔）",
+    )
+    zip_file_size: int = Field(
+        ...,
+        ge=0,
+        description="ZIP 壓縮檔大小（字節）",
+    )
+    items: list[BatchDownloadItem] = Field(
+        default=[],
+        description="各影片下載詳細結果（僅包含失敗項目以供調試）",
     )

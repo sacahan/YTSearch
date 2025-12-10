@@ -294,32 +294,22 @@ async def download_audio(
 @router.post(
     "/batch",
     response_model=BatchDownloadResponse,
-    summary="批次下載多個 YouTube 影片為 MP3 音檔",
+    summary="批次下載多個 YouTube 影片為 MP3 音檔（ZIP 壓縮）",
     responses={
         200: {
-            "description": "批次下載完成，可能包含成功和失敗項目",
+            "description": "批次下載完成，返回 ZIP 壓縮檔下載連結",
             "example": {
                 "total": 2,
-                "successful": 1,
-                "failed": 1,
-                "items": [
-                    {
-                        "video_id": "dQw4w9WgXcQ",
-                        "status": "success",
-                        "download_url": "http://localhost:8000/downloads/...",
-                        "duration": 212,
-                        "cached": False,
-                    },
-                    {
-                        "video_id": "invalid_id",
-                        "status": "failed",
-                        "error_message": "影片不存在",
-                    },
-                ],
+                "successful": 2,
+                "failed": 0,
+                "zip_url": "http://localhost:8000/downloads/youtube_batch_download_20231215_120000.zip",
+                "zip_file_size": 8500000,
+                "items": [],
             },
         },
         400: {"description": "無效的請求（超過限制或格式錯誤）"},
         429: {"description": "超過批次速率限制"},
+        503: {"description": "下載或壓縮失敗"},
     },
 )
 async def batch_download(
@@ -328,13 +318,14 @@ async def batch_download(
     x_forwarded_for: Optional[str] = Header(None),
 ) -> BatchDownloadResponse:
     """
-    批次下載多個 YouTube 影片為 MP3 音檔。
+    批次下載多個 YouTube 影片為 MP3 音檔並打包為 ZIP 壓縮檔。
 
     ### 功能
     - 支援一次提交最多 20 個影片 ID
     - 並行下載，避免阻塞
     - 部分失敗不影響其他檔案
-    - 返回每個影片的下載結果清單
+    - 自動打包為 ZIP 壓縮檔並返回下載連結
+    - 返回詳細的下載結果（僅包含失敗項目）
 
     ### 參數
     - `video_ids`: 影片 ID 清單（陣列，必須）
@@ -355,87 +346,64 @@ async def batch_download(
     client_ip = x_forwarded_for or request.client.host if request.client else "unknown"
 
     logger.info(
-        f"批次下載請求: {len(batch_request.video_ids)} 個影片, IP={client_ip}",
+        f"批次下載請求（ZIP）: {len(batch_request.video_ids)} 個影片, IP={client_ip}",
     )
 
-    # 驗證影片 ID
-    validated_ids = []
-    for vid in batch_request.video_ids:
-        try:
-            validated_id = validate_video_id(vid)
-            validated_ids.append(validated_id)
-        except Exception as e:
-            logger.warning(f"影片 ID 驗證失敗: {vid} - {str(e)}")
-            validated_ids.append(None)
+    try:
+        # 執行批次下載並打包為 ZIP
+        zip_path, batch_results = await downloader_service.batch_download_as_zip(
+            batch_request.video_ids,
+        )
 
-    # 執行批次下載
-    batch_results = await downloader_service.batch_download(
-        [vid for vid in validated_ids if vid],
-    )
+        # 統計結果
+        successful = sum(1 for success, _, _ in batch_results.values() if success)
+        failed = sum(1 for success, _, _ in batch_results.values() if not success)
 
-    # 組織回應
-    items = []
-    successful = 0
-    failed = 0
-
-    for vid in batch_request.video_ids:
-        try:
-            validated_id = validate_video_id(vid)
-
-            if validated_id in batch_results:
-                success, audio_file, error_msg = batch_results[validated_id]
-
-                if success:
-                    download_url = generate_download_url(
-                        config.download_base_url,
-                        validated_id,
-                        audio_file.title if audio_file else "unknown",
-                    )
-                    items.append(
-                        BatchDownloadItem(
-                            video_id=validated_id,
-                            status="success",
-                            download_url=download_url,
-                            duration=int(audio_file.duration) if audio_file else 0,
-                            cached=False,
-                        ),
-                    )
-                    successful += 1
-                else:
-                    items.append(
-                        BatchDownloadItem(
-                            video_id=validated_id,
-                            status="failed",
-                            error_message=error_msg or "未知錯誤",
-                        ),
-                    )
-                    failed += 1
-            else:
-                items.append(
+        # 收集失敗項目用於回應
+        failed_items = []
+        for vid, (success, _audio_file, error_msg) in batch_results.items():
+            if not success:
+                failed_items.append(
                     BatchDownloadItem(
-                        video_id=validated_id,
+                        video_id=vid,
                         status="failed",
-                        error_message="未處理",
+                        error_message=error_msg or "未知錯誤",
                     ),
                 )
-                failed += 1
 
-        except Exception as e:
-            items.append(
-                BatchDownloadItem(
-                    video_id=vid,
-                    status="failed",
-                    error_message=str(e),
-                ),
-            )
-            failed += 1
+        # 生成 ZIP 下載連結
+        zip_url = generate_download_url(
+            config.download_base_url,
+            "",
+            zip_path.name,
+        )
 
-    duration = time.time() - start_time
-    logger.info(f"批次下載完成: {successful} 成功, {failed} 失敗 ({duration:.2f}s)")
+        # 獲取 ZIP 檔案大小
+        zip_file_size = zip_path.stat().st_size
 
-    return BatchDownloadResponse(
-        total=len(batch_request.video_ids),
-        successful=successful,
-        failed=failed,
-        items=items,
-    )
+        duration = time.time() - start_time
+        logger.info(
+            f"批次下載完成（ZIP）: {successful} 成功, {failed} 失敗 ({duration:.2f}s), "
+            f"ZIP 大小: {zip_file_size} 字節"
+        )
+
+        return BatchDownloadResponse(
+            total=len(batch_request.video_ids),
+            successful=successful,
+            failed=failed,
+            zip_url=zip_url,
+            zip_file_size=zip_file_size,
+            items=failed_items,
+        )
+
+    except Exception as e:
+        duration = time.time() - start_time
+        logger.error(f"批次下載異常: ({duration:.2f}s) - {str(e)}", exc_info=True)
+        error = DownloadFailedError(
+            message="批次下載失敗",
+            reason=str(e),
+        )
+        return JSONResponse(
+            status_code=503,
+            content=error.to_response(),
+        )
